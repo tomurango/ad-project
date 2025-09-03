@@ -1,11 +1,17 @@
-// Firebase configuration with environment variables
-const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "your_firebase_api_key_here",
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "ad-project-64e9b.firebaseapp.com",
-  projectId: process.env.FIREBASE_PROJECT_ID || "ad-project-64e9b",
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "ad-project-64e9b.appspot.com",
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "774397013456",
-  appId: process.env.FIREBASE_APP_ID || "1:774397013456:web:a123456789abcdef"
-};
+// Firebase configuration - loaded from environment variables in main process
+// This file should NOT contain actual API keys
+let firebaseConfig = null;
 
-export { firebaseConfig };
+// Config will be set by main process from environment variables
+function setFirebaseConfig(config) {
+  firebaseConfig = config;
+}
+
+function getFirebaseConfig() {
+  if (!firebaseConfig) {
+    throw new Error('Firebase config not initialized. Must be set by main process.');
+  }
+  return firebaseConfig;
+}
+
+module.exports = { setFirebaseConfig, getFirebaseConfig };

@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
+
+// Load environment variables from .env file
+require('dotenv').config();
 const OllamaService = require('./src/services/ollama-service');
 const aiServiceManager = require('./src/services/ai-service-manager');
 const firebaseService = require('./src/services/firebase-service');
@@ -48,9 +51,32 @@ const ollamaService = new OllamaService();
 // Migration Service初期化
 let migrationService;
 
+// Firebase設定を環境変数から構築
+function getFirebaseConfigFromEnv() {
+  return {
+    apiKey: process.env.FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || "ad-project-64e9b.firebaseapp.com",
+    projectId: process.env.FIREBASE_PROJECT_ID || "ad-project-64e9b",
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "ad-project-64e9b.appspot.com",
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "774397013456",
+    appId: process.env.FIREBASE_APP_ID || "1:774397013456:web:a123456789abcdef"
+  };
+}
+
 // Firebase Service初期化
 async function initializeFirebase() {
   try {
+    // 環境変数からFirebase設定を取得
+    const firebaseConfig = getFirebaseConfigFromEnv();
+    
+    if (!firebaseConfig.apiKey) {
+      throw new Error('FIREBASE_API_KEY が .env ファイルに設定されていません');
+    }
+    
+    // firebase-config.jsに設定を送信
+    const configModule = require('./config/firebase-config');
+    configModule.setFirebaseConfig(firebaseConfig);
+    
     const result = await firebaseService.initialize();
     if (result.success) {
       console.log('✅ Firebase サービス初期化完了');

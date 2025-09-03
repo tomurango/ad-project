@@ -1,5 +1,5 @@
 // Firebase サービス管理クラス（テスト版）
-const firebaseConfig = require('../../config/firebase-config');
+const { getFirebaseConfig } = require('../../config/firebase-config');
 
 class FirebaseService {
   constructor() {
@@ -23,6 +23,9 @@ class FirebaseService {
       const firebaseAuth = await import('firebase/auth');
       const firebaseFirestore = await import('firebase/firestore');
       const firebaseFunctions = await import('firebase/functions');
+      
+      // Firebase設定を取得
+      const firebaseConfig = getFirebaseConfig();
       
       // Firebase アプリを初期化
       this.app = firebase.initializeApp(firebaseConfig);
