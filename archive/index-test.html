@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>テスト</title>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="logo">🚀 広告配信プラットフォーム</div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" id="tweet-tab">📝 ツイート</button>
+        <button class="nav-tab" id="ai-tab">🤖 AI相談</button>
+        <button class="nav-tab" id="projects-tab">📂 プロジェクト管理</button>
+        <button class="nav-tab" id="test-tab" style="background: red;">🔧 テスト</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="project-section" style="display:none;">
+    <h2>📂 プロジェクト管理セクション</h2>
+    <p>プロジェクト管理画面が表示されました！</p>
+  </div>
+
+  <div id="tweet-section">
+    <h2>📝 ツイートセクション</h2>
+    <p>ツイート画面です</p>
+  </div>
+
+  <script>
+    console.log('🚀 テストJavaScript読み込み開始');
+
+    function showTab(tab) {
+      console.log('=== showTab実行 ===', tab);
+      
+      // 全セクションを非表示
+      document.getElementById('project-section').style.display = 'none';
+      document.getElementById('tweet-section').style.display = 'none';
+      
+      // 選択されたセクションを表示
+      if (tab === 'projects') {
+        document.getElementById('project-section').style.display = 'block';
+      } else if (tab === 'tweet') {
+        document.getElementById('tweet-section').style.display = 'block';
+      }
+      
+      // タブの活性化
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(`${tab}-tab`).classList.add('active');
+    }
+
+    function testFunction() {
+      console.log('=== テスト関数実行 ===');
+      alert('テスト成功！showTabを実行します');
+      showTab('projects');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('🚀 DOM読み込み完了');
+      
+      // イベントリスナー追加
+      document.getElementById('tweet-tab').addEventListener('click', () => showTab('tweet'));
+      document.getElementById('projects-tab').addEventListener('click', () => showTab('projects'));
+      document.getElementById('test-tab').addEventListener('click', testFunction);
+      
+      console.log('イベントリスナー追加完了');
+    });
+  </script>
+</body>
+</html>

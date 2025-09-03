@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>広告配信プラットフォーム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f7f9fc;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .header {
+      background: #1da1f2;
+      color: white;
+      padding: 1rem 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0;
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+
+    .nav-tab:hover, .nav-tab.active {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      min-height: calc(100vh - 80px);
+    }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      height: fit-content;
+    }
+
+    .section h2 {
+      margin-bottom: 20px;
+      color: #1da1f2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tweet-form textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 15px;
+      border: 2px solid #e1e8ed;
+      border-radius: 12px;
+      font-size: 16px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .tweet-form textarea:focus {
+      outline: none;
+      border-color: #1da1f2;
+    }
+
+    .char-count {
+      text-align: right;
+      margin: 5px 0;
+      color: #657786;
+      font-size: 14px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 15px 0;
+    }
+
+    .form-row label {
+      min-width: 100px;
+      font-weight: 600;
+    }
+
+    .form-row input, .form-row select {
+      flex: 1;
+      padding: 8px 12px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: #1da1f2;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1991db;
+    }
+
+    .btn-secondary {
+      background: #e1e8ed;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d8dd;
+    }
+
+    .btn-success {
+      background: #1d9bf0;
+      color: white;
+    }
+
+    .tweet-preview {
+      background: #f7f9fc;
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+
+    .tweet-preview .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .tweet-preview .avatar {
+      width: 40px;
+      height: 40px;
+      background: #1da1f2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .tweet-history {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .tweet-item {
+      padding: 15px;
+      border-bottom: 1px solid #e1e8ed;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .tweet-item:hover {
+      background: #f7f9fc;
+    }
+
+    .tweet-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #657786;
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .status-scheduled {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-posted {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .ai-chat {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #f7f9fc;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .ai-message, .user-message {
+      margin-bottom: 15px;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .ai-message {
+      background: #e3f2fd;
+      border-left: 3px solid #1da1f2;
+    }
+
+    .user-message {
+      background: #f3e5f5;
+      border-left: 3px solid #9c27b0;
+      margin-left: 20px;
+    }
+
+    .ai-input {
+      display: flex;
+      gap: 10px;
+    }
+
+    .ai-input input {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+    }
+
+    .project-list {
+      display: grid;
+      gap: 15px;
+    }
+
+    .project-card {
+      background: white;
+      border: 2px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .project-card:hover {
+      border-color: #1da1f2;
+      box-shadow: 0 4px 12px rgba(29, 161, 242, 0.15);
+    }
+
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 15px;
+    }
+
+    .project-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .project-name {
+      font-size: 14px;
+      color: #657786;
+      font-family: monospace;
+      background: #f7f9fc;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .project-actions button {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 15px;
+    }
+
+    .project-info {
+      margin-bottom: 15px;
+    }
+
+    .project-description {
+      color: #333;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .project-meta {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: #657786;
+    }
+
+    .project-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .project-schedule {
+      background: #f0f8ff;
+      border: 1px solid #1da1f2;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .project-schedule h4 {
+      color: #1da1f2;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .schedule-info {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+
+    .schedule-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .status-active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-paused {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-completed {
+      background: #e2e3e5;
+      color: #6c757d;
+    }
+
+    .candidate-item {
+      padding: 12px;
+      border-bottom: 1px solid #e1e8ed;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .candidate-item:hover {
+      background: #f7f9fc;
+    }
+
+    .candidate-item:last-child {
+      border-bottom: none;
+    }
+
+    .candidate-info {
+      flex: 1;
+    }
+
+    .candidate-name {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .candidate-path {
+      font-size: 12px;
+      color: #657786;
+      font-family: monospace;
+      background: #f7f9fc;
+      padding: 2px 4px;
+      border-radius: 3px;
+      margin-bottom: 4px;
+    }
+
+    .candidate-description {
+      font-size: 14px;
+      color: #657786;
+      margin-bottom: 4px;
+    }
+
+    .candidate-badges {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .candidate-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: #e1e8ed;
+      color: #333;
+    }
+
+    .candidate-badge.tech {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .candidate-badge.files {
+      background: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .candidate-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .candidate-actions button {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+        padding: 10px;
+      }
+      
+      .header-content {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .nav-tabs {
+        margin-top: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="logo">🚀 広告配信プラットフォーム</div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" id="tweet-tab">📝 ツイート</button>
+        <button class="nav-tab" id="ai-tab">🤖 AI相談</button>
+        <button class="nav-tab" id="projects-tab">📂 プロジェクト管理</button>
+        <button class="nav-tab" id="settings-tab">⚙️ 設定</button>
+        <button class="nav-tab" id="test-tab" style="background: red;">🔧 テスト</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Twitter投稿セクション -->
+    <div class="section" id="tweet-section">
+      <h2>📝 Twitter投稿</h2>
+      
+      <div class="tweet-form">
+        <textarea id="tweetText" placeholder="今日は何をツイートしますか？&#10;&#10;💡 AIに相談してみましょう：&#10;「どんな内容が良い？」&#10;「投稿時間はいつがベスト？」&#10;「プロジェクトの進捗を共有したい」" maxlength="280"></textarea>
+        <div class="char-count"><span id="charCount">0</span>/280</div>
+        
+        <div class="form-row">
+          <label>投稿時間:</label>
+          <select id="scheduleType">
+            <option value="now">今すぐ投稿</option>
+            <option value="scheduled">時間指定</option>
+          </select>
+          <input type="datetime-local" id="scheduleTime" style="display:none;">
+        </div>
+        
+        <div class="form-row">
+          <label>プロジェクト:</label>
+          <select id="projectSelect">
+            <option value="">選択してください</option>
+            <option value="shuumy">shuumy (趣味記録アプリ)</option>
+            <option value="chokushii">chokushii (内省記録アプリ)</option>
+            <option value="genshin-hensei">genshin-hensei (原神編成ツール)</option>
+            <option value="general">一般</option>
+          </select>
+          <button class="btn btn-secondary" onclick="generateFromProject()">AIで生成</button>
+        </div>
+        
+        <div class="tweet-preview" id="tweetPreview" style="display:none;">
+          <div class="user-info">
+            <div class="avatar">👤</div>
+            <div>
+              <strong>あなたのTwitterアカウント</strong>
+              <div style="color: #657786; font-size: 14px;">@your_account</div>
+            </div>
+          </div>
+          <div id="previewText"></div>
+        </div>
+        
+        <div style="text-align: right; margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="saveDraft()">下書き保存</button>
+          <button class="btn btn-primary" onclick="postTweet()" id="postButton">ツイート</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI相談 & 投稿履歴セクション -->
+    <div class="section" id="ai-section">
+      <h2>🤖 AI相談チャット</h2>
+      
+      <div class="ai-chat" id="aiChat">
+        <div class="ai-message">
+          <strong>AI</strong><br>
+          こんにちは！Twitter投稿について何でも相談してください。<br><br>
+          📝 投稿内容の提案<br>
+          ⏰ 最適な投稿時間<br>
+          📊 プロジェクト情報から自動生成<br>
+          🎯 フォロワー増加のコツ<br><br>
+          どのようなことをお聞きしたいですか？
+        </div>
+      </div>
+      
+      <div class="ai-input">
+        <input type="text" id="aiInput" placeholder="AIに質問や相談をしてください..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button class="btn btn-primary" onclick="sendMessage()">送信</button>
+      </div>
+      
+      <hr style="margin: 30px 0;">
+      
+      <h2>📊 投稿履歴</h2>
+      <div class="tweet-history" id="tweetHistory">
+        <div class="tweet-item">
+          <div class="tweet-meta">
+            <span>2025-07-29 14:30</span>
+            <span class="status-badge status-scheduled">予約済み</span>
+          </div>
+          <div>shuumyアプリ、カレンダー表示を大幅改善！視認性が劇的にアップしました 📅✨</div>
+        </div>
+        <div class="tweet-item">
+          <div class="tweet-meta">
+            <span>2025-07-28 10:15</span>
+            <span class="status-badge status-posted">投稿済み</span>
+          </div>
+          <div>chokushiiの新機能開発中。AIチャット機能でより良い内省体験を 🤖💭</div>
+        </div>
+        <div class="tweet-item">
+          <div class="tweet-meta">
+            <span>2025-07-27 16:45</span>
+            <span class="status-badge status-posted">投稿済み</span>
+          </div>
+          <div>広告配信プラットフォームの開発開始！自動化で効率的な投稿管理を目指します 🚀</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- プロジェクト管理セクション（フルワイズ） -->
+  <div id="project-section" style="display:none; max-width: 1200px; margin: 0 auto; padding: 20px;">
+    <div class="section" style="grid-column: span 2;">
+      <h2>📂 プロジェクト管理</h2>
+      
+      <!-- プロジェクト一元管理設定 -->
+      <div style="background: #e8f4f8; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #1da1f2;">
+        <h3 style="margin-bottom: 15px; color: #1da1f2;">📁 プロジェクト一元管理</h3>
+        <p style="margin-bottom: 15px; color: #333; font-size: 14px;">
+          複数のプロジェクトを管理しているディレクトリを指定すると、プロジェクト候補を自動で表示します
+        </p>
+        
+        <div class="form-row">
+          <label>管理ディレクトリ:</label>
+          <input type="text" id="centralDirectory" placeholder="例: /Users/username/develop" readonly>
+          <button class="btn btn-secondary" onclick="selectCentralDirectory()">📁 選択</button>
+        </div>
+        
+        <div id="projectCandidates" style="display: none; margin-top: 15px;">
+          <h4 style="color: #333; margin-bottom: 10px;">発見されたプロジェクト:</h4>
+          <div id="candidatesList" style="max-height: 200px; overflow-y: auto; border: 1px solid #e1e8ed; border-radius: 8px; background: white;">
+            <!-- プロジェクト候補がここに表示される -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 新規プロジェクト登録 -->
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+        <h3 style="margin-bottom: 15px; color: #333;">新規プロジェクト登録</h3>
+        
+        <div class="form-row" style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+          <label style="color: #856404; font-weight: bold;">プロジェクトディレクトリ: *</label>
+          <input type="text" id="newProjectPath" placeholder="プロジェクトのディレクトリパス" readonly style="background: #fff;">
+          <button class="btn btn-primary" onclick="selectProjectDirectory()">📁 選択</button>
+        </div>
+        
+        <div class="form-row">
+          <label>プロジェクト名:</label>
+          <input type="text" id="newProjectName" placeholder="例: my-awesome-app">
+        </div>
+        
+        <div class="form-row">
+          <label>表示名:</label>
+          <input type="text" id="newProjectDisplayName" placeholder="例: 私の素晴らしいアプリ">
+        </div>
+        
+        <div class="form-row">
+          <label>説明:</label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <textarea id="newProjectDescription" placeholder="プロジェクトの詳細説明を入力してください..." style="min-height: 80px; width: 100%; padding: 8px 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px;"></textarea>
+            <div style="text-align: right;">
+              <button type="button" class="btn btn-secondary" onclick="generateAIDescription()" style="font-size: 12px; padding: 6px 12px;">🤖 AI説明生成</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <label>カテゴリ:</label>
+          <select id="newProjectCategory">
+            <option value="web">Webアプリ</option>
+            <option value="mobile">モバイルアプリ</option>
+            <option value="desktop">デスクトップアプリ</option>
+            <option value="tool">開発ツール</option>
+            <option value="game">ゲーム</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+        
+        <div class="form-row">
+          <label>技術スタック:</label>
+          <input type="text" id="newProjectTech" placeholder="例: React, Node.js, MongoDB">
+        </div>
+        
+        <h4 style="margin: 20px 0 10px 0; color: #333;">自動投稿設定</h4>
+        
+        <div class="form-row">
+          <label>投稿頻度:</label>
+          <select id="newProjectFrequency">
+            <option value="daily">毎日</option>
+            <option value="every2days">2日に1回</option>
+            <option value="weekly">週1回</option>
+            <option value="biweekly">2週間に1回</option>
+            <option value="monthly">月1回</option>
+          </select>
+        </div>
+        
+        <div class="form-row">
+          <label>投稿時間:</label>
+          <input type="time" id="newProjectTime" value="10:00">
+        </div>
+        
+        <div class="form-row">
+          <label>投稿期間:</label>
+          <select id="newProjectDuration">
+            <option value="1month">1ヶ月間</option>
+            <option value="3months">3ヶ月間</option>
+            <option value="6months">6ヶ月間</option>
+            <option value="1year">1年間</option>
+            <option value="unlimited">無制限</option>
+          </select>
+        </div>
+        
+        <div style="text-align: right; margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="resetProjectForm()">リセット</button>
+          <button class="btn btn-primary" onclick="registerProject()">プロジェクト登録</button>
+        </div>
+      </div>
+      
+      <!-- 登録済みプロジェクト一覧 -->
+      <div>
+        <h3 style="margin-bottom: 15px; color: #333;">登録済みプロジェクト</h3>
+        <div id="projectList" class="project-list">
+          <!-- プロジェクト一覧がここに表示される -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 他のセクション用のコンテナを再開 -->
+  <div class="container" id="other-sections" style="display:none;">
+
+  <script>
+    // 最初にログを出力して、JavaScriptが読み込まれていることを確認
+    console.log('🚀 JavaScript読み込み開始');
+    console.log('現在の時刻:', new Date().toISOString());
+    
+    let tweetHistory = [];
+    let aiConversation = [];
+    let registeredProjects = [];
+
+    // 即座に実行されるテスト
+    console.log('🔧 変数定義完了');
+
+    // テスト関数（最初に定義）
+    function testFunction() {
+      console.log('=== テスト関数実行 ===');
+      alert('テスト関数が実行されました！showTab関数も定義されているはずです。');
+      
+      // showTab関数の存在確認
+      console.log('showTab関数の型:', typeof showTab);
+      console.log('showTab関数:', showTab);
+      
+      // 強制的にプロジェクトタブを実行
+      try {
+        showTab('projects');
+      } catch (error) {
+        console.error('showTab実行エラー:', error);
+        alert('showTabエラー: ' + error.message);
+      }
+    }
+
+    console.log('🔧 testFunction定義完了');
+
+    // タブ切り替え（最初に定義）
+    function showTab(tab) {
+      console.log('=== タブ切り替え開始 ===');
+      console.log('切り替え先タブ:', tab);
+      
+      // 要素の存在確認
+      const mainContainer = document.querySelector('.container');
+      const projectSection = document.getElementById('project-section');
+      
+      console.log('メインコンテナ存在:', !!mainContainer);
+      console.log('プロジェクトセクション存在:', !!projectSection);
+      
+      if (projectSection) {
+        console.log('プロジェクトセクション現在のdisplay:', projectSection.style.display);
+      }
+      
+      // タブの活性化
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      const targetTab = document.getElementById(`${tab}-tab`);
+      if (targetTab) {
+        targetTab.classList.add('active');
+        console.log('タブアクティブ化成功');
+      } else {
+        console.error('対象タブが見つかりません:', `${tab}-tab`);
+      }
+      
+      if (tab === 'projects') {
+        console.log('プロジェクト管理タブ処理開始');
+        
+        // プロジェクト管理タブの場合
+        if (mainContainer) {
+          mainContainer.style.display = 'none';
+          console.log('メインコンテナを非表示にしました');
+        }
+        
+        if (projectSection) {
+          projectSection.style.display = 'block';
+          console.log('プロジェクトセクションを表示しました');
+          console.log('プロジェクトセクション新しいdisplay:', projectSection.style.display);
+          updateProjectList();
+        } else {
+          console.error('プロジェクトセクションが見つかりません！');
+        }
+      } else {
+        // その他のタブの場合
+        if (mainContainer) mainContainer.style.display = 'grid';
+        if (projectSection) projectSection.style.display = 'none';
+        
+        // 通常のセクション表示切り替え
+        const sections = {
+          'tweet': 'tweet-section',
+          'ai': 'ai-section',
+          'settings': 'settings-section'
+        };
+        
+        // 全セクションを非表示
+        Object.values(sections).forEach(sectionId => {
+          const section = document.getElementById(sectionId);
+          if (section) {
+            section.style.display = 'none';
+          }
+        });
+        
+        // 選択されたセクションを表示
+        const targetSectionId = sections[tab];
+        if (targetSectionId) {
+          const targetSection = document.getElementById(targetSectionId);
+          if (targetSection) {
+            targetSection.style.display = 'block';
+          }
+        }
+      }
+    }
+
+    console.log('🔧 showTab関数定義完了');
+
+    // 文字カウント
+    document.getElementById('tweetText').addEventListener('input', function() {
+      const count = this.value.length;
+      document.getElementById('charCount').textContent = count;
+      document.getElementById('charCount').style.color = count > 260 ? '#e0245e' : '#657786';
+      
+      // プレビュー更新
+      updatePreview();
+    });
+
+    // スケジュール設定の表示切り替え
+    document.getElementById('scheduleType').addEventListener('change', function() {
+      const scheduleTime = document.getElementById('scheduleTime');
+      if (this.value === 'scheduled') {
+        scheduleTime.style.display = 'block';
+        // デフォルトを1時間後に設定
+        const now = new Date();
+        now.setHours(now.getHours() + 1);
+        scheduleTime.value = now.toISOString().slice(0, 16);
+      } else {
+        scheduleTime.style.display = 'none';
+      }
+      updatePreview();
+    });
+
+    // プレビュー更新
+    function updatePreview() {
+      const text = document.getElementById('tweetText').value;
+      const preview = document.getElementById('tweetPreview');
+      const previewText = document.getElementById('previewText');
+      
+      if (text.trim()) {
+        preview.style.display = 'block';
+        previewText.textContent = text;
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+
+    // プロジェクト情報からAI生成
+    async function generateFromProject() {
+      const project = document.getElementById('projectSelect').value;
+      if (!project) {
+        alert('プロジェクトを選択してください');
+        return;
+      }
+      
+      // AIによる投稿生成を実行
+      await generateTweetWithAI(project);
+    }
+
+    // Ollama AIを使用してツイートを生成
+    async function generateTweetWithAI(projectName) {
+      try {
+        // ローディング表示
+        showAILoading(true);
+        
+        // プロジェクト分析
+        const analysisResult = await window.electronAPI.invoke('ollama-analyze-project', projectName);
+        if (!analysisResult.success) {
+          throw new Error(analysisResult.error);
+        }
+        
+        // AI投稿生成
+        const tweetResult = await window.electronAPI.invoke('ollama-generate-tweet', analysisResult.data);
+        if (!tweetResult.success) {
+          throw new Error(tweetResult.error);
+        }
+        
+        // 生成されたツイートを表示
+        document.getElementById('tweetText').value = tweetResult.data;
+        updatePreview();
+        
+        // AI会話に追加
+        addAIMessage(`「${projectName}」プロジェクトを分析してツイート内容を生成しました！\n\n${tweetResult.data}\n\n修正が必要でしたらお知らせください。`);
+        
+      } catch (error) {
+        console.error('AI生成エラー:', error);
+        // フォールバック：従来の方法
+        generateFromProjectFallback(projectName);
+        addAIMessage(`AIサービスに接続できませんでした。代替案を表示しています。\nエラー: ${error.message}`);
+      } finally {
+        showAILoading(false);
+      }
+    }
+
+    // フォールバック用の投稿生成
+    function generateFromProjectFallback(project) {
+      let suggestions = {
+        'chokushii': [
+          'chokushiiで今日も内省を深めています 🤔✨ セルフリフレクションで新しい気づきを発見',
+          'AIチャット機能でより良い内省体験を提供中 🤖💭 あなたの成長をサポートします',
+          'カードメモ機能でふとした考えを記録。後から振り返ると新しい発見があります 📝'
+        ],
+        'shuumy': [
+          'shuumyアプリ、カレンダー表示を大幅改善！視認性が劇的にアップしました 📅✨',
+          'shuumy v1.1.0リリース！活動記録機能で趣味の振り返りがより楽しく 🎉',
+          '趣味の記録をもっと楽しく。シューマイで毎日の活動を可視化してみませんか？'
+        ],
+        'genshin-hensei': [
+          '今日の原神編成を考え中 ⚔️ 最適なパーティー構成でより楽しい冒険を',
+          '新キャラの編成パターンを研究中 🔍 効率的な戦略で原神ライフを充実させましょう',
+          '原神の編成情報をまとめています。皆さんのおすすめ編成も教えてください！'
+        ],
+        'general': [
+          '今日の開発進捗を振り返り中 💻 小さな積み重ねが大きな成果につながります',
+          '新しい技術を学習中 📚 常に成長し続けることの大切さを実感しています',
+          '開発者として日々感じることを共有していきます 🚀'
+        ]
+      };
+      
+      const options = suggestions[project] || suggestions['general'];
+      const suggestion = options[Math.floor(Math.random() * options.length)];
+      
+      document.getElementById('tweetText').value = suggestion;
+      updatePreview();
+    }
+
+    // AI相談メッセージ送信
+    async function sendMessage() {
+      const input = document.getElementById('aiInput');
+      const message = input.value.trim();
+      if (!message) return;
+      
+      // ユーザーメッセージを追加
+      addUserMessage(message);
+      input.value = '';
+      
+      try {
+        // ローディング表示
+        showAILoading(true);
+        
+        // Ollama AIに相談
+        const result = await window.electronAPI.invoke('ollama-chat', message, '');
+        if (result.success) {
+          addAIMessage(result.data);
+        } else {
+          throw new Error(result.error);
+        }
+        
+      } catch (error) {
+        console.error('AI相談エラー:', error);
+        // フォールバック応答
+        const response = generateAIResponseFallback(message);
+        addAIMessage(`AI接続エラーが発生しました。代替応答を表示します：\n\n${response}`);
+      } finally {
+        showAILoading(false);
+      }
+    }
+
+    function addUserMessage(message) {
+      const chat = document.getElementById('aiChat');
+      const div = document.createElement('div');
+      div.className = 'user-message';
+      div.innerHTML = `<strong>あなた</strong><br>${message}`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function addAIMessage(message) {
+      const chat = document.getElementById('aiChat');
+      const div = document.createElement('div');
+      div.className = 'ai-message';
+      div.innerHTML = `<strong>AI</strong><br>${message.replace(/\n/g, '<br>')}`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    // フォールバック用のAI応答生成
+    function generateAIResponseFallback(message) {
+      const responses = {
+        '投稿時間': 'Twitterの最適な投稿時間は以下の通りです：\n\n📊 平日: 12:00-13:00（昼休み）、19:00-21:00（通勤・帰宅時間）\n📊 土日: 10:00-11:00、15:00-16:00\n\nあなたのフォロワーの活動時間も分析してより良い時間を提案できます！',
+        'フォロワー': 'フォロワーを増やすコツ：\n\n1. 🎯 一貫したテーマでの投稿\n2. 💬 他のユーザーとの積極的な交流\n3. 📸 視覚的に魅力的なコンテンツ\n4. ⏰ 定期的な投稿\n5. #️⃣ 関連性の高いハッシュタグの使用\n\n特にどの点について詳しく知りたいですか？',
+        'ハッシュタグ': '効果的なハッシュタグの選び方：\n\n✅ プロジェクト関連: #開発者 #アプリ開発 #Flutter\n✅ 技術関連: #プログラミング #エンジニア #テック\n✅ 一般的: #今日の積み重ね #学習記録\n\n2-3個程度に絞って使用するのがおすすめです！',
+        '内容': '投稿内容のアイデア：\n\n💡 開発進捗の共有\n💡 学んだことの振り返り\n💡 プロジェクトの成果物紹介\n💡 技術的な気づきや発見\n💡 開発者としての日常\n\nどのような内容について投稿したいですか？'
+      };
+      
+      for (let key in responses) {
+        if (message.includes(key)) {
+          return responses[key];
+        }
+      }
+      
+      return `「${message}」について承知しました！\n\n具体的には以下のような観点でサポートできます：\n• 投稿内容の提案\n• 最適な投稿時間のアドバイス\n• ハッシュタグの推奨\n• フォロワー増加のコツ\n\nどの点について詳しく知りたいですか？`;
+    }
+
+    // ローディング表示制御
+    function showAILoading(show) {
+      const loadingId = 'ai-loading-message';
+      const existingLoading = document.getElementById(loadingId);
+      
+      if (show) {
+        if (!existingLoading) {
+          const chat = document.getElementById('aiChat');
+          const div = document.createElement('div');
+          div.id = loadingId;
+          div.className = 'ai-message';
+          div.innerHTML = '<strong>AI</strong><br>考え中です... 🤔';
+          chat.appendChild(div);
+          chat.scrollTop = chat.scrollHeight;
+        }
+      } else {
+        if (existingLoading) {
+          existingLoading.remove();
+        }
+      }
+    }
+
+    // Electron IPC bridge initialization
+    if (typeof window !== 'undefined' && !window.electronAPI) {
+      window.electronAPI = {
+        invoke: (channel, ...args) => {
+          return window.require('electron').ipcRenderer.invoke(channel, ...args);
+        }
+      };
+    }
+
+    // ツイート投稿
+    function postTweet() {
+      const text = document.getElementById('tweetText').value.trim();
+      if (!text) {
+        alert('投稿内容を入力してください');
+        return;
+      }
+      
+      if (text.length > 280) {
+        alert('文字数が280文字を超えています');
+        return;
+      }
+      
+      const scheduleType = document.getElementById('scheduleType').value;
+      const isScheduled = scheduleType === 'scheduled';
+      
+      // 投稿データを作成
+      const tweet = {
+        id: Date.now(),
+        text: text,
+        timestamp: new Date().toISOString(),
+        scheduled: isScheduled,
+        scheduleTime: isScheduled ? document.getElementById('scheduleTime').value : null,
+        status: isScheduled ? 'scheduled' : 'posted'
+      };
+      
+      // 履歴に追加
+      tweetHistory.unshift(tweet);
+      updateTweetHistory();
+      
+      // フォームをリセット
+      document.getElementById('tweetText').value = '';
+      updatePreview();
+      
+      const message = isScheduled ? 
+        `投稿を予約しました！ 📅\n${tweet.scheduleTime}に投稿されます。` :
+        '投稿しました！ 🎉';
+      
+      addAIMessage(message);
+      alert(message);
+    }
+
+    // 下書き保存
+    function saveDraft() {
+      const text = document.getElementById('tweetText').value.trim();
+      if (!text) {
+        alert('保存する内容がありません');
+        return;
+      }
+      
+      localStorage.setItem('tweetDraft', text);
+      alert('下書きを保存しました！');
+    }
+
+    // 投稿履歴更新
+    function updateTweetHistory() {
+      const history = document.getElementById('tweetHistory');
+      history.innerHTML = '';
+      
+      tweetHistory.forEach(tweet => {
+        const div = document.createElement('div');
+        div.className = 'tweet-item';
+        
+        const date = new Date(tweet.timestamp).toLocaleString('ja-JP');
+        const statusClass = tweet.status === 'scheduled' ? 'status-scheduled' : 'status-posted';
+        const statusText = tweet.status === 'scheduled' ? '予約済み' : '投稿済み';
+        
+        div.innerHTML = `
+          <div class="tweet-meta">
+            <span>${date}</span>
+            <span class="status-badge ${statusClass}">${statusText}</span>
+          </div>
+          <div>${tweet.text}</div>
+        `;
+        
+        history.appendChild(div);
+      });
+    }
+
+
+    // 一元管理ディレクトリ選択
+    async function selectCentralDirectory() {
+      try {
+        const result = await window.electronAPI.invoke('select-directory', 'プロジェクト管理ディレクトリを選択');
+        
+        if (result.success && !result.canceled) {
+          document.getElementById('centralDirectory').value = result.data;
+          
+          // プロジェクト候補を検索
+          await discoverProjects(result.data);
+          
+          // 設定を保存
+          localStorage.setItem('centralDirectory', result.data);
+        }
+      } catch (error) {
+        console.error('ディレクトリ選択エラー:', error);
+        alert('ディレクトリの選択に失敗しました');
+      }
+    }
+
+    // プロジェクト候補を発見
+    async function discoverProjects(directoryPath) {
+      try {
+        console.log('プロジェクト検索開始:', directoryPath);
+        
+        // ローディング表示
+        const candidatesDiv = document.getElementById('projectCandidates');
+        const candidatesList = document.getElementById('candidatesList');
+        candidatesDiv.style.display = 'block';
+        candidatesList.innerHTML = '<div style="padding: 20px; text-align: center; color: #1da1f2;">🔍 プロジェクトを検索中...</div>';
+        
+        const result = await window.electronAPI.invoke('discover-projects', directoryPath);
+        
+        console.log('プロジェクト検索結果:', result);
+        
+        if (result.success) {
+          displayProjectCandidates(result.data);
+        } else {
+          console.error('プロジェクト検索失敗:', result.error);
+          candidatesList.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #e0245e;">
+              <p style="margin-bottom: 10px;">❌ プロジェクト検索エラー</p>
+              <p style="font-size: 14px; color: #657786;">${result.error}</p>
+              <button class="btn btn-secondary" onclick="document.getElementById('projectCandidates').style.display='none'" style="margin-top: 10px; font-size: 12px;">閉じる</button>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('プロジェクト検索例外:', error);
+        const candidatesList = document.getElementById('candidatesList');
+        candidatesList.innerHTML = `
+          <div style="padding: 20px; text-align: center; color: #e0245e;">
+            <p style="margin-bottom: 10px;">❌ システムエラー</p>
+            <p style="font-size: 14px; color: #657786;">プロジェクト検索で予期しないエラーが発生しました</p>
+            <button class="btn btn-secondary" onclick="document.getElementById('projectCandidates').style.display='none'" style="margin-top: 10px; font-size: 12px;">閉じる</button>
+          </div>
+        `;
+      }
+    }
+
+    // プロジェクト候補を表示
+    function displayProjectCandidates(projects) {
+      const candidatesDiv = document.getElementById('projectCandidates');
+      const candidatesList = document.getElementById('candidatesList');
+      
+      console.log('プロジェクト候補表示開始:', projects.length, '個のプロジェクト');
+      
+      if (!projects || projects.length === 0) {
+        candidatesDiv.style.display = 'block';
+        candidatesList.innerHTML = '<div style="padding: 20px; text-align: center; color: #657786;">プロジェクトが見つかりませんでした</div>';
+        return;
+      }
+      
+      const projectCards = [];
+      
+      for (let i = 0; i < projects.length; i++) {
+        try {
+          const project = projects[i];
+          console.log(`プロジェクト処理中: ${project.name || project.displayName || 'Unknown'}`);
+          
+          const badges = [];
+          
+          // 安全にバッジを追加
+          try {
+            if (project.tech) badges.push(`<span class="candidate-badge tech">${escapeHtml(project.tech)}</span>`);
+            if (project.hasPackageJson) badges.push(`<span class="candidate-badge files">package.json</span>`);
+            if (project.hasPubspecYaml) badges.push(`<span class="candidate-badge files">pubspec.yaml</span>`);
+            if (project.hasReadme) badges.push(`<span class="candidate-badge files">README</span>`);
+            if (project.hasClaude) badges.push(`<span class="candidate-badge files">CLAUDE.md</span>`);
+            
+            // 追加情報バッジ
+            if (project.codeFiles && Array.isArray(project.codeFiles) && project.codeFiles.length > 0) {
+              badges.push(`<span class="candidate-badge">${project.codeFiles.length}ファイル</span>`);
+            }
+            
+            if (project.features && Array.isArray(project.features) && project.features.length > 0) {
+              project.features.slice(0, 2).forEach(feature => {
+                if (feature && typeof feature === 'string') {
+                  badges.push(`<span class="candidate-badge tech">${escapeHtml(feature)}</span>`);
+                }
+              });
+            }
+          } catch (badgeError) {
+            console.error('バッジ生成エラー:', badgeError);
+          }
+          
+          // 安全なプロジェクトデータのエンコーディング
+          let encodedData;
+          try {
+            // 循環参照や巨大なオブジェクトを処理するため、必要な情報のみを抽出
+            const safeProject = {
+              name: project.name || '',
+              displayName: project.displayName || '',
+              path: project.path || '',
+              description: project.description || '',
+              category: project.category || 'other',
+              tech: project.tech || '',
+              features: Array.isArray(project.features) ? project.features : [],
+              codeFiles: Array.isArray(project.codeFiles) ? project.codeFiles.slice(0, 100) : [], // ファイル数制限
+              hasPackageJson: project.hasPackageJson || false,
+              hasPubspecYaml: project.hasPubspecYaml || false,
+              hasReadme: project.hasReadme || false,
+              hasClaude: project.hasClaude || false
+            };
+            encodedData = btoa(encodeURIComponent(JSON.stringify(safeProject)));
+          } catch (encodeError) {
+            console.error('プロジェクトデータエンコードエラー:', encodeError, project);
+            // フォールバック: 基本情報のみ
+            const basicProject = {
+              name: project.name || '',
+              displayName: project.displayName || '',
+              path: project.path || '',
+              description: (project.description || '').substring(0, 100),
+              category: project.category || 'other',
+              tech: (project.tech || '').substring(0, 50)
+            };
+            encodedData = btoa(encodeURIComponent(JSON.stringify(basicProject)));
+          }
+          
+          const projectCard = `
+            <div class="candidate-item">
+              <div class="candidate-info">
+                <div class="candidate-name">${escapeHtml(project.displayName || project.name || 'Unknown')}</div>
+                <div class="candidate-path">${escapeHtml(project.path || '')}</div>
+                ${project.description ? `<div class="candidate-description">${escapeHtml(project.description)}</div>` : ''}
+                <div class="candidate-badges">${badges.join('')}</div>
+              </div>
+              <div class="candidate-actions">
+                <button class="btn btn-primary" onclick="selectProjectCandidateWithData('${encodedData}')">選択</button>
+              </div>
+            </div>
+          `;
+          
+          projectCards.push(projectCard);
+          
+        } catch (projectError) {
+          console.error(`プロジェクト表示エラー (${i}):`, projectError);
+          // エラーが発生したプロジェクトはスキップ
+        }
+      }
+      
+      candidatesList.innerHTML = projectCards.join('');
+      candidatesDiv.style.display = 'block';
+      
+      console.log(`プロジェクト候補表示完了: ${projectCards.length}個表示`);
+      
+    } catch (displayError) {
+      console.error('プロジェクト候補表示エラー:', displayError);
+      candidatesList.innerHTML = `
+        <div style="padding: 20px; text-align: center; color: #e0245e;">
+          <p style="margin-bottom: 10px;">❌ 表示エラー</p>
+          <p style="font-size: 14px; color: #657786;">プロジェクト情報の表示で問題が発生しました</p>
+          <button class="btn btn-secondary" onclick="document.getElementById('projectCandidates').style.display='none'" style="margin-top: 10px; font-size: 12px;">閉じる</button>
+        </div>
+      `;
+    }
+    }
+
+    // HTMLエスケープ関数
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // デバッグ用：要素の状態確認
+    function debugElements() {
+      console.log('=== 要素デバッグ情報 ===');
+      const projectSection = document.getElementById('project-section');
+      const mainContainer = document.querySelector('.container');
+      
+      console.log('プロジェクトセクション:', {
+        exists: !!projectSection,
+        display: projectSection ? projectSection.style.display : 'N/A',
+        computedDisplay: projectSection ? getComputedStyle(projectSection).display : 'N/A',
+        visible: projectSection ? projectSection.offsetHeight > 0 : false
+      });
+      
+      console.log('メインコンテナ:', {
+        exists: !!mainContainer,
+        display: mainContainer ? mainContainer.style.display : 'N/A',
+        computedDisplay: mainContainer ? getComputedStyle(mainContainer).display : 'N/A'
+      });
+      
+      // 全てのsectionを確認
+      const allSections = document.querySelectorAll('.section, [id$="-section"]');
+      console.log('全セクション:', Array.from(allSections).map(s => ({
+        id: s.id,
+        className: s.className,
+        display: s.style.display,
+        computedDisplay: getComputedStyle(s).display
+      })));
+    }
+
+    // テスト用：強制的にプロジェクトセクションを表示
+    function forceShowProjectSection() {
+      console.log('強制表示テスト開始');
+      const projectSection = document.getElementById('project-section');
+      if (projectSection) {
+        projectSection.style.display = 'block';
+        projectSection.style.visibility = 'visible';
+        console.log('プロジェクトセクション強制表示完了');
+        debugElements();
+      } else {
+        console.error('プロジェクトセクションが見つかりません');
+      }
+    }
+
+    // グローバルに関数を公開（コンソールから実行可能）
+    window.debugElements = debugElements;
+    window.forceShowProjectSection = forceShowProjectSection;
+    window.showTab = showTab;
+
+    // プロジェクト候補を選択（詳細データ付き）
+    function selectProjectCandidateWithData(encodedData) {
+      try {
+        const project = JSON.parse(decodeURIComponent(atob(encodedData)));
+        
+        document.getElementById('newProjectPath').value = project.path;
+        document.getElementById('newProjectName').value = project.name;
+        document.getElementById('newProjectDisplayName').value = project.displayName;
+        document.getElementById('newProjectDescription').value = project.description;
+        document.getElementById('newProjectCategory').value = project.category;
+        document.getElementById('newProjectTech').value = project.tech;
+        
+        // プロジェクトデータを一時保存（AI生成用）
+        window.currentProjectData = project;
+        
+        // 候補リストを非表示
+        document.getElementById('projectCandidates').style.display = 'none';
+        
+        alert(`プロジェクト「${project.displayName}」の情報をフォームに設定しました！\n\n詳細情報も分析済みです。必要に応じて「🤖 AI説明生成」ボタンで説明文を改善できます。`);
+        
+      } catch (error) {
+        console.error('プロジェクトデータの解析エラー:', error);
+        alert('プロジェクトデータの読み込みでエラーが発生しました');
+      }
+    }
+
+    // プロジェクト候補を選択（互換性のため残す）
+    function selectProjectCandidate(path, name, displayName, description, category, tech) {
+      document.getElementById('newProjectPath').value = path;
+      document.getElementById('newProjectName').value = name;
+      document.getElementById('newProjectDisplayName').value = displayName;
+      document.getElementById('newProjectDescription').value = description;
+      document.getElementById('newProjectCategory').value = category;
+      document.getElementById('newProjectTech').value = tech;
+      
+      // 候補リストを非表示
+      document.getElementById('projectCandidates').style.display = 'none';
+      
+      alert(`プロジェクト「${displayName}」の情報をフォームに設定しました！`);
+    }
+
+    // AI説明生成
+    async function generateAIDescription() {
+      const projectPath = document.getElementById('newProjectPath').value.trim();
+      const projectName = document.getElementById('newProjectName').value.trim();
+      const displayName = document.getElementById('newProjectDisplayName').value.trim();
+      
+      if (!projectPath) {
+        alert('プロジェクトディレクトリを先に選択してください');
+        return;
+      }
+      
+      if (!projectName || !displayName) {
+        alert('プロジェクト名と表示名を入力してください');
+        return;
+      }
+      
+      try {
+        // ローディング表示
+        const descriptionArea = document.getElementById('newProjectDescription');
+        const originalPlaceholder = descriptionArea.placeholder;
+        descriptionArea.placeholder = '🤖 AI説明生成中...';
+        descriptionArea.disabled = true;
+        
+        let projectData = window.currentProjectData;
+        
+        // プロジェクトデータが無い場合は現在のフォーム情報を使用
+        if (!projectData) {
+          projectData = {
+            displayName: displayName,
+            name: projectName,
+            path: projectPath,
+            tech: document.getElementById('newProjectTech').value,
+            category: document.getElementById('newProjectCategory').value,
+            description: descriptionArea.value,
+            features: [],
+            codeFiles: [],
+            fileStructure: {}
+          };
+        }
+        
+        // AI説明生成を実行
+        const result = await window.electronAPI.invoke('generate-ai-description', projectData);
+        
+        if (result.success) {
+          descriptionArea.value = result.data;
+          alert('AI説明生成が完了しました！\n\n生成された説明文を確認して、必要に応じて編集してください。');
+        } else {
+          alert('AI説明生成に失敗しました: ' + result.error);
+        }
+        
+      } catch (error) {
+        console.error('AI説明生成エラー:', error);
+        alert('AI説明生成でエラーが発生しました');
+      } finally {
+        // ローディング解除
+        const descriptionArea = document.getElementById('newProjectDescription');
+        descriptionArea.placeholder = originalPlaceholder;
+        descriptionArea.disabled = false;
+      }
+    }
+
+    // 個別プロジェクトディレクトリ選択
+    async function selectProjectDirectory() {
+      try {
+        const result = await window.electronAPI.invoke('select-directory', 'プロジェクトディレクトリを選択');
+        
+        if (result.success && !result.canceled) {
+          document.getElementById('newProjectPath').value = result.data;
+          
+          // ディレクトリからプロジェクト情報を自動抽出
+          await analyzeSelectedProject(result.data);
+        }
+      } catch (error) {
+        console.error('ディレクトリ選択エラー:', error);
+        alert('ディレクトリの選択に失敗しました');
+      }
+    }
+
+    // 選択されたプロジェクトを分析
+    async function analyzeSelectedProject(projectPath) {
+      try {
+        const projectName = projectPath.split('/').pop();
+        const result = await window.electronAPI.invoke('discover-projects', projectPath.substring(0, projectPath.lastIndexOf('/')));
+        
+        if (result.success) {
+          const project = result.data.find(p => p.path === projectPath);
+          if (project) {
+            document.getElementById('newProjectName').value = project.name;
+            document.getElementById('newProjectDisplayName').value = project.displayName;
+            document.getElementById('newProjectDescription').value = project.description;
+            document.getElementById('newProjectCategory').value = project.category;
+            document.getElementById('newProjectTech').value = project.tech;
+          }
+        }
+      } catch (error) {
+        console.error('プロジェクト分析エラー:', error);
+        // エラーが発生してもディレクトリ選択は有効
+      }
+    }
+
+    // プロジェクト登録
+    function registerProject() {
+      const projectPath = document.getElementById('newProjectPath').value.trim();
+      const name = document.getElementById('newProjectName').value.trim();
+      const displayName = document.getElementById('newProjectDisplayName').value.trim();
+      const description = document.getElementById('newProjectDescription').value.trim();
+      const category = document.getElementById('newProjectCategory').value;
+      const tech = document.getElementById('newProjectTech').value.trim();
+      const frequency = document.getElementById('newProjectFrequency').value;
+      const time = document.getElementById('newProjectTime').value;
+      const duration = document.getElementById('newProjectDuration').value;
+      
+      // バリデーション
+      if (!projectPath) {
+        alert('プロジェクトディレクトリは必須です。「📁 選択」ボタンからディレクトリを選択してください。');
+        return;
+      }
+      
+      if (!name || !displayName || !description) {
+        alert('プロジェクト名、表示名、説明は必須項目です');
+        return;
+      }
+      
+      // 重複チェック
+      if (registeredProjects.some(p => p.name === name)) {
+        alert('このプロジェクト名は既に登録されています');
+        return;
+      }
+      
+      const project = {
+        id: Date.now(),
+        name: name,
+        displayName: displayName,
+        description: description,
+        path: projectPath,
+        category: category,
+        tech: tech,
+        frequency: frequency,
+        time: time,
+        duration: duration,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        lastPost: null,
+        totalPosts: 0
+      };
+      
+      // プロジェクトを登録
+      registeredProjects.push(project);
+      
+      // LocalStorageに保存
+      localStorage.setItem('registeredProjects', JSON.stringify(registeredProjects));
+      
+      // フォームリセット
+      resetProjectForm();
+      
+      // 一覧更新
+      updateProjectList();
+      
+      // ツイートのプロジェクト選択肢を更新
+      updateProjectSelect();
+      
+      alert(`プロジェクト「${displayName}」を登録しました！\n自動投稿が設定されています。`);
+    }
+
+    // プロジェクトフォームリセット
+    function resetProjectForm() {
+      document.getElementById('newProjectPath').value = '';
+      document.getElementById('newProjectName').value = '';
+      document.getElementById('newProjectDisplayName').value = '';
+      document.getElementById('newProjectDescription').value = '';
+      document.getElementById('newProjectCategory').value = 'web';
+      document.getElementById('newProjectTech').value = '';
+      document.getElementById('newProjectFrequency').value = 'daily';
+      document.getElementById('newProjectTime').value = '10:00';
+      document.getElementById('newProjectDuration').value = '1month';
+    }
+
+    // プロジェクト一覧更新
+    function updateProjectList() {
+      const projectList = document.getElementById('projectList');
+      
+      if (registeredProjects.length === 0) {
+        projectList.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #657786; background: #f7f9fc; border-radius: 12px;">
+            <p style="font-size: 16px; margin-bottom: 10px;">📝 まだプロジェクトが登録されていません</p>
+            <p style="font-size: 14px;">上記のフォームから新規プロジェクトを登録してみましょう！</p>
+          </div>
+        `;
+        return;
+      }
+      
+      projectList.innerHTML = registeredProjects.map(project => {
+        const frequencyText = {
+          'daily': '毎日',
+          'every2days': '2日に1回',
+          'weekly': '週1回',
+          'biweekly': '2週間に1回',
+          'monthly': '月1回'
+        };
+        
+        const durationText = {
+          '1month': '1ヶ月間',
+          '3months': '3ヶ月間',
+          '6months': '6ヶ月間',
+          '1year': '1年間',
+          'unlimited': '無制限'
+        };
+        
+        const statusText = {
+          'active': '稼働中',
+          'paused': '一時停止',
+          'completed': '完了'
+        };
+        
+        const categoryEmojis = {
+          'web': '🌐',
+          'mobile': '📱',
+          'desktop': '💻',
+          'tool': '🔧',
+          'game': '🎮',
+          'other': '📦'
+        };
+        
+        return `
+          <div class="project-card">
+            <div class="project-header">
+              <div>
+                <div class="project-title">${project.displayName}</div>
+                <div class="project-name">${project.name}</div>
+              </div>
+              <div class="project-actions">
+                <button class="btn btn-secondary" onclick="toggleProjectStatus('${project.id}')">
+                  ${project.status === 'active' ? '⏸️ 停止' : '▶️ 再開'}
+                </button>
+                <button class="btn btn-secondary" onclick="editProject('${project.id}')">✏️ 編集</button>
+                <button class="btn btn-secondary" onclick="deleteProject('${project.id}')">🗑️ 削除</button>
+              </div>
+            </div>
+            
+            <div class="project-info">
+              <div class="project-description">${project.description}</div>
+              <div class="project-meta">
+                <span>${categoryEmojis[project.category]} ${project.category.toUpperCase()}</span>
+                <span>🔧 ${project.tech || '未設定'}</span>
+                <span>📊 投稿数: ${project.totalPosts}回</span>
+                <span>📅 登録: ${new Date(project.createdAt).toLocaleDateString('ja-JP')}</span>
+              </div>
+            </div>
+            
+            <div class="project-schedule">
+              <h4>📅 自動投稿スケジュール <span class="schedule-status status-${project.status}">${statusText[project.status]}</span></h4>
+              <div class="schedule-info">
+                <span>🔄 ${frequencyText[project.frequency]}</span>
+                <span>⏰ ${project.time}</span>
+                <span>📆 ${durationText[project.duration]}</span>
+                ${project.lastPost ? `<span>📝 最終投稿: ${new Date(project.lastPost).toLocaleDateString('ja-JP')}</span>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // プロジェクト選択肢を更新
+    function updateProjectSelect() {
+      const projectSelect = document.getElementById('projectSelect');
+      const currentValue = projectSelect.value;
+      
+      // 既存の登録プロジェクト選択肢をクリア
+      const options = projectSelect.querySelectorAll('option');
+      options.forEach(option => {
+        if (!['', 'shuumy', 'chokushii', 'genshin-hensei', 'general'].includes(option.value)) {
+          option.remove();
+        }
+      });
+      
+      // 新しい選択肢を追加
+      registeredProjects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.name;
+        option.textContent = `${project.displayName} (${project.name})`;
+        projectSelect.appendChild(option);
+      });
+      
+      // 元の値を復元
+      projectSelect.value = currentValue;
+    }
+
+    // プロジェクト状態切り替え
+    function toggleProjectStatus(projectId) {
+      const project = registeredProjects.find(p => p.id == projectId);
+      if (!project) return;
+      
+      project.status = project.status === 'active' ? 'paused' : 'active';
+      
+      // LocalStorageに保存
+      localStorage.setItem('registeredProjects', JSON.stringify(registeredProjects));
+      
+      // 一覧更新
+      updateProjectList();
+      
+      const statusText = project.status === 'active' ? '再開' : '一時停止';
+      alert(`プロジェクト「${project.displayName}」を${statusText}しました`);
+    }
+
+    // プロジェクト編集
+    function editProject(projectId) {
+      const project = registeredProjects.find(p => p.id == projectId);
+      if (!project) return;
+      
+      // フォームに既存データを設定
+      document.getElementById('newProjectPath').value = project.path || '';
+      document.getElementById('newProjectName').value = project.name;
+      document.getElementById('newProjectDisplayName').value = project.displayName;
+      document.getElementById('newProjectDescription').value = project.description;
+      document.getElementById('newProjectCategory').value = project.category;
+      document.getElementById('newProjectTech').value = project.tech;
+      document.getElementById('newProjectFrequency').value = project.frequency;
+      document.getElementById('newProjectTime').value = project.time;
+      document.getElementById('newProjectDuration').value = project.duration;
+      
+      // プロジェクトを一時削除（更新のため）
+      registeredProjects = registeredProjects.filter(p => p.id != projectId);
+      
+      // 一覧更新
+      updateProjectList();
+      
+      alert('フォームに既存データを設定しました。変更後に「プロジェクト登録」ボタンを押してください。');
+    }
+
+    // プロジェクト削除
+    function deleteProject(projectId) {
+      const project = registeredProjects.find(p => p.id == projectId);
+      if (!project) return;
+      
+      if (!confirm(`プロジェクト「${project.displayName}」を削除しますか？\n\nこの操作は取り消せません。`)) {
+        return;
+      }
+      
+      // プロジェクトを削除
+      registeredProjects = registeredProjects.filter(p => p.id != projectId);
+      
+      // LocalStorageに保存
+      localStorage.setItem('registeredProjects', JSON.stringify(registeredProjects));
+      
+      // 一覧更新
+      updateProjectList();
+      updateProjectSelect();
+      
+      alert(`プロジェクト「${project.displayName}」を削除しました`);
+    }
+
+    // Ollama健康チェック
+    async function checkOllamaHealth() {
+      try {
+        const result = await window.electronAPI.invoke('ollama-health-check');
+        if (result.success && result.data) {
+          addAIMessage('✅ Ollama AIサービスが正常に動作しています！プロジェクト分析とAI相談機能が利用可能です。');
+        } else {
+          addAIMessage('⚠️ Ollama AIサービスに接続できませんでした。基本機能は利用できますが、AI機能は制限されます。');
+        }
+      } catch (error) {
+        console.error('Ollama健康チェックエラー:', error);
+        addAIMessage('❌ AI機能の初期化でエラーが発生しました。フォールバック機能を使用します。');
+      }
+    }
+
+    console.log('🔧 DOMContentLoadedイベントリスナー登録中...');
+
+    // 初期化
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('🚀🚀🚀 DOMContentLoaded イベント発火！');
+      console.log('広告配信プラットフォーム - Twitter機能初期化開始！');
+      
+      // DOM要素の存在確認
+      const testElements = [
+        'tweet-tab', 'ai-tab', 'projects-tab', 'settings-tab', 'test-tab',
+        'project-section', 'tweet-section'
+      ];
+      
+      testElements.forEach(id => {
+        const element = document.getElementById(id);
+        console.log(`要素確認 ${id}:`, !!element);
+      });
+      
+      // 関数の存在確認
+      console.log('=== 関数存在確認 ===');
+      console.log('showTab:', typeof showTab, showTab);
+      console.log('testFunction:', typeof testFunction, testFunction);
+      
+      // グローバルに再登録
+      window.showTab = showTab;
+      window.testFunction = testFunction;
+      
+      // 全タブにイベントリスナーを追加
+      const tabs = [
+        { id: 'tweet-tab', target: 'tweet' },
+        { id: 'ai-tab', target: 'ai' },
+        { id: 'projects-tab', target: 'projects' },
+        { id: 'settings-tab', target: 'settings' },
+        { id: 'test-tab', target: 'test' }
+      ];
+      
+      tabs.forEach(tab => {
+        const element = document.getElementById(tab.id);
+        if (element) {
+          element.addEventListener('click', function(e) {
+            console.log(`${tab.target}タブクリック検出`);
+            e.preventDefault();
+            
+            if (tab.target === 'test') {
+              testFunction();
+            } else {
+              showTab(tab.target);
+            }
+          });
+          console.log(`${tab.id}にイベントリスナー追加完了`);
+        } else {
+          console.error(`${tab.id}要素が見つかりません`);
+        }
+      });
+      
+      // 下書きの復元
+      const draft = localStorage.getItem('tweetDraft');
+      if (draft) {
+        document.getElementById('tweetText').value = draft;
+        updatePreview();
+      }
+      
+      // プロジェクトデータの復元
+      const savedProjects = localStorage.getItem('registeredProjects');
+      if (savedProjects) {
+        registeredProjects = JSON.parse(savedProjects);
+        updateProjectSelect();
+      }
+      
+      // 一元管理ディレクトリの復元
+      const savedCentralDirectory = localStorage.getItem('centralDirectory');
+      if (savedCentralDirectory) {
+        document.getElementById('centralDirectory').value = savedCentralDirectory;
+      }
+      
+      // サンプル履歴データ
+      tweetHistory = [
+        {
+          id: 1,
+          text: 'shuumyアプリ、カレンダー表示を大幅改善！視認性が劇的にアップしました 📅✨',
+          timestamp: '2025-07-29T14:30:00',
+          status: 'scheduled'
+        },
+        {
+          id: 2,
+          text: 'chokushiiの新機能開発中。AIチャット機能でより良い内省体験を 🤖💭',
+          timestamp: '2025-07-28T10:15:00',
+          status: 'posted'
+        }
+      ];
+      updateTweetHistory();
+      
+      // Ollama AI健康チェック（非同期で実行）
+      setTimeout(checkOllamaHealth, 1000);
+    });
+  </script>
+</body>
+</html>

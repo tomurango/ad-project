@@ -1,0 +1,43 @@
+{
+  "name": "ad-project",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "build-mac": "electron-builder --mac",
+    "build-win": "electron-builder --win",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "electron",
+    "advertisement",
+    "automation",
+    "social-media"
+  ],
+  "author": "tomuraeishi",
+  "license": "MIT",
+  "description": "広告配信・管理の自動化プラットフォーム",
+  "build": {
+    "appId": "com.tomuraeishi.ad-project",
+    "productName": "広告配信プラットフォーム",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.business",
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "dependencies": {
+    "firebase": "^10.14.1"
+  },
+  "devDependencies": {
+    "electron": "^37.2.3",
+    "electron-builder": "^26.0.12"
+  }
+}

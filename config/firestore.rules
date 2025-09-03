@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ユーザープロファイル - 自分のデータのみアクセス可能
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // ユーザー認証情報（暗号化済み） - 本人のみアクセス可能
+    match /user_credentials/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // プロジェクト - 所有者のみアクセス可能
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // プラン - デバッグ用に完全オープン (一時的)
+    match /plans/{planId} {
+      allow read, write, create: if request.auth != null;
+    }
+    
+    // 投稿 - 所有者のみアクセス可能
+    match /posts/{postId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // スケジュールされたツイート（旧システム互換）- 所有者のみ
+    match /scheduledTweets/{tweetId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // ツイートテンプレート（キャッシュ）- 所有者のみ
+    match /tweetTemplates/{templateId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // 分析データ - 所有者のみ
+    match /analytics/{analyticsId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Function実行ログ - 読み取り専用（認証済みユーザー）
+    match /functionLogs/{logId} {
+      allow read: if request.auth != null;
+      // Functionsからの書き込みのみ許可（admin権限）
+      allow write: if false;
+    }
+    
+    // その他のドキュメントはデフォルトで拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

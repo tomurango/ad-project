@@ -1,0 +1,3824 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>広告配信プラットフォーム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f7f9fc;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .header {
+      background: #1da1f2;
+      color: white;
+      padding: 1rem 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0;
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+
+    .nav-tab:hover, .nav-tab.active {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      min-height: calc(100vh - 80px);
+    }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      height: fit-content;
+    }
+
+    .section h2 {
+      margin-bottom: 20px;
+      color: #1da1f2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tweet-form textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 15px;
+      border: 2px solid #e1e8ed;
+      border-radius: 12px;
+      font-size: 16px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .tweet-form textarea:focus {
+      outline: none;
+      border-color: #1da1f2;
+    }
+
+    .char-count {
+      text-align: right;
+      margin: 5px 0;
+      color: #657786;
+      font-size: 14px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 15px 0;
+    }
+
+    .form-row label {
+      min-width: 100px;
+      font-weight: 600;
+    }
+
+    .form-row input, .form-row select {
+      flex: 1;
+      padding: 8px 12px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: #1da1f2;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1991db;
+    }
+
+    .btn-secondary {
+      background: #e1e8ed;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d8dd;
+    }
+
+    .btn-success {
+      background: #1d9bf0;
+      color: white;
+    }
+
+    .tweet-preview {
+      background: #f7f9fc;
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 15px;
+      margin: 15px 0;
+    }
+
+    .tweet-preview .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .tweet-preview .avatar {
+      width: 40px;
+      height: 40px;
+      background: #1da1f2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .tweet-history {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .tweet-item {
+      padding: 15px;
+      border-bottom: 1px solid #e1e8ed;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .tweet-item:hover {
+      background: #f7f9fc;
+    }
+
+    .tweet-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #657786;
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    /* 新しいセクション用のCSSスタイル */
+    .form-group {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+
+    .form-group h3 {
+      margin: 0 0 15px 0;
+      color: #1da1f2;
+      font-size: 16px;
+    }
+
+    .status-card {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .campaign-controls {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+
+    .campaigns-list {
+      margin: 15px 0;
+    }
+
+    .campaign-item {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .campaign-info h4 {
+      margin: 0 0 5px 0;
+      color: #333;
+    }
+
+    .campaign-info p {
+      margin: 0;
+      color: #657786;
+      font-size: 14px;
+    }
+
+    .campaign-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .platform-status {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .platform-status.connected {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .platform-status.unconfigured {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .platform-status.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #657786;
+    }
+
+    .platform-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin: 15px 0;
+    }
+
+    .platform-card {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      padding: 15px;
+    }
+
+    .platform-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .platform-name {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid #e1e8ed;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: #1da1f2;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #657786;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-footer {
+      padding: 20px;
+      border-top: 1px solid #e1e8ed;
+      text-align: right;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .status-scheduled {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-posted {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .ai-chat {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #f7f9fc;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .ai-message, .user-message {
+      margin-bottom: 15px;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .ai-message {
+      background: #e3f2fd;
+      border-left: 3px solid #1da1f2;
+    }
+
+    .user-message {
+      background: #f3e5f5;
+      border-left: 3px solid #9c27b0;
+      margin-left: 20px;
+    }
+
+    .ai-input {
+      display: flex;
+      gap: 10px;
+    }
+
+    .ai-input input {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+    }
+
+    .project-list {
+      display: grid;
+      gap: 15px;
+    }
+
+    .project-card {
+      background: white;
+      border: 2px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .project-card:hover {
+      border-color: #1da1f2;
+      box-shadow: 0 4px 12px rgba(29, 161, 242, 0.15);
+    }
+
+    .project-card.editing {
+      border-color: #28a745;
+      background: #f8fff9;
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+    }
+
+    .project-card.editing::before {
+      content: "✏️ 編集中";
+      position: absolute;
+      top: -8px;
+      right: 15px;
+      background: #28a745;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .project-card {
+      position: relative;
+    }
+
+    /* Firebase 関連スタイル */
+    .firebase-function-card {
+      background: white;
+      border: 2px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .firebase-function-card:hover {
+      border-color: #ff6b35;
+      box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
+    }
+
+    .firebase-function-card h4 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .firebase-function-card p {
+      margin: 0 0 15px 0;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .firebase-sync-btn:disabled {
+      opacity: 0.5 !important;
+      cursor: not-allowed !important;
+    }
+
+    .firebase-status-connected {
+      color: #28a745 !important;
+    }
+
+    .firebase-status-disconnected {
+      color: #dc3545 !important;
+    }
+
+    .firebase-status-checking {
+      color: #ffc107 !important;
+    }
+
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 15px;
+    }
+
+    .project-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .project-name {
+      font-size: 14px;
+      color: #657786;
+      font-family: monospace;
+      background: #f7f9fc;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .project-actions button {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 15px;
+    }
+
+    .project-info {
+      margin-bottom: 15px;
+    }
+
+    .project-description {
+      color: #333;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .project-meta {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: #657786;
+    }
+
+    .project-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .project-schedule {
+      background: #f0f8ff;
+      border: 1px solid #1da1f2;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .project-schedule h4 {
+      color: #1da1f2;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .schedule-info {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+
+    .schedule-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .status-active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-paused {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-completed {
+      background: #e2e3e5;
+      color: #6c757d;
+    }
+
+    .candidate-item {
+      padding: 12px;
+      border-bottom: 1px solid #e1e8ed;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .candidate-item:hover {
+      background: #f7f9fc;
+    }
+
+    .candidate-item:last-child {
+      border-bottom: none;
+    }
+
+    .candidate-info {
+      flex: 1;
+    }
+
+    .candidate-name {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .candidate-path {
+      font-size: 12px;
+      color: #657786;
+      font-family: monospace;
+      background: #f7f9fc;
+      padding: 2px 4px;
+      border-radius: 3px;
+      margin-bottom: 4px;
+    }
+
+    .candidate-description {
+      font-size: 14px;
+      color: #657786;
+      margin-bottom: 4px;
+    }
+
+    .candidate-badges {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .candidate-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: #e1e8ed;
+      color: #333;
+    }
+
+    .candidate-badge.tech {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .candidate-badge.files {
+      background: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .candidate-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .candidate-actions button {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+        padding: 10px;
+      }
+      .header-content {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .nav-tabs {
+        margin-top: 10px;
+      }
+    }
+
+    /* ローディングアニメーション */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #1da0f2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .loading-spinner-large {
+      width: 30px;
+      height: 30px;
+      border-width: 4px;
+      margin-right: 12px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .ai-loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      z-index: 10;
+    }
+
+    .ai-loading-content {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14px;
+      color: #666;
+    }
+    /* Google Ads UI Styles */
+    .campaign-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .campaigns-list {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      background: white;
+    }
+
+    .campaign-item {
+      padding: 15px;
+      border-bottom: 1px solid #e1e8ed;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .campaign-item:last-child {
+      border-bottom: none;
+    }
+
+    .campaign-info h4 {
+      margin: 0 0 5px 0;
+      color: #1da1f2;
+    }
+
+    .campaign-info p {
+      margin: 0;
+      color: #657786;
+      font-size: 14px;
+    }
+
+    .campaign-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .campaign-actions button {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 20px 0 20px;
+      border-bottom: 1px solid #e1e8ed;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #657786;
+      cursor: pointer;
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      background: #f7f9fc;
+    }
+
+    .modal-body {
+      padding: 0 20px;
+    }
+
+    .modal-footer {
+      padding: 20px;
+      border-top: 1px solid #e1e8ed;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* YouTube Analysis Styles */
+    .analysis-results {
+      margin-top: 20px;
+    }
+
+    .channel-card {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .channel-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .channel-thumbnail {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .channel-info h3 {
+      margin: 0 0 5px 0;
+      color: #1da1f2;
+    }
+
+    .channel-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin: 15px 0;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 10px;
+      background: #f7f9fc;
+      border-radius: 8px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #1da1f2;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #657786;
+      margin-top: 5px;
+    }
+
+    .video-list {
+      margin-top: 20px;
+    }
+
+    .video-item {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      border-bottom: 1px solid #e1e8ed;
+    }
+
+    .video-thumbnail {
+      width: 120px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    .video-info {
+      flex: 1;
+    }
+
+    .video-title {
+      font-weight: 500;
+      margin: 0 0 5px 0;
+      color: #1da1f2;
+    }
+
+    .video-stats {
+      font-size: 14px;
+      color: #657786;
+    }
+
+    /* Multi-Platform Auth Styles */
+    .platform-overview {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .platform-status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .platform-card {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .platform-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .platform-name {
+      font-weight: 500;
+      color: #1da1f2;
+    }
+
+    .platform-status {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .platform-status.connected {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .platform-status.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .platform-status.unconfigured {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .platform-checkboxes {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .platform-checkboxes label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .platform-checkboxes input[type="checkbox"] {
+      width: auto;
+    }
+
+    .search-results, .report-results {
+      margin-top: 20px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #657786;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="logo">🚀 広告配信プラットフォーム</div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" id="tweet-tab">📝 ツイート</button>
+        <button class="nav-tab" id="ai-tab">🤖 AI相談</button>
+        <button class="nav-tab" id="projects-tab">📂 プロジェクト管理</button>
+        <button class="nav-tab" id="firebase-tab">🔥 Firebase</button>
+        <button class="nav-tab" id="twitter-tab">🐦 Twitter API</button>
+        <button class="nav-tab" id="google-ads-tab">📊 Google広告</button>
+        <button class="nav-tab" id="youtube-tab">📺 YouTube分析</button>
+        <button class="nav-tab" id="multi-auth-tab">🔐 統合認証</button>
+        <button class="nav-tab" id="test-tab" style="background: red;">🔧 テスト</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Twitter投稿セクション -->
+    <div class="section" id="tweet-section">
+      <h2>📝 Twitter投稿</h2>
+      
+      <div class="tweet-form">
+        <textarea id="tweetText" placeholder="今日は何をツイートしますか？&#10;&#10;💡 AIに相談してみましょう：&#10;「どんな内容が良い？」&#10;「投稿時間はいつがベスト？」&#10;「プロジェクトの進捗を共有したい」" maxlength="280"></textarea>
+        <div class="char-count"><span id="charCount">0</span>/280</div>
+        
+        <div class="form-row">
+          <label>投稿時間:</label>
+          <select id="scheduleType">
+            <option value="now">今すぐ投稿</option>
+            <option value="scheduled">時間指定</option>
+          </select>
+          <input type="datetime-local" id="scheduleTime" style="display:none;">
+        </div>
+        
+        <div class="form-row">
+          <label>プロジェクト:</label>
+          <select id="projectSelect">
+            <option value="">選択してください</option>
+            <option value="shuumy">shuumy (趣味記録アプリ)</option>
+            <option value="chokushii">chokushii (内省記録アプリ)</option>
+            <option value="genshin-hensei">genshin-hensei (原神編成ツール)</option>
+            <option value="general">一般</option>
+          </select>
+          <button class="btn btn-secondary" onclick="generateFromProject()">AIで生成</button>
+        </div>
+        
+        <div class="tweet-preview" id="tweetPreview" style="display:none;">
+          <div class="user-info">
+            <div class="avatar">👤</div>
+            <div>
+              <strong>あなたのTwitterアカウント</strong>
+              <div style="color: #657786; font-size: 14px;">@your_account</div>
+            </div>
+          </div>
+          <div id="previewText"></div>
+        </div>
+        
+        <div style="text-align: right; margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="saveDraft()">下書き保存</button>
+          <button class="btn btn-primary" onclick="postTweet()" id="postButton">ツイート</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI相談 & 投稿履歴セクション -->
+    <div class="section" id="ai-section">
+      <h2>🤖 AI相談チャット</h2>
+      
+      <div class="ai-chat" id="aiChat">
+        <div class="ai-message">
+          <strong>AI</strong><br>
+          こんにちは！Twitter投稿について何でも相談してください。<br><br>
+          📝 投稿内容の提案<br>
+          ⏰ 最適な投稿時間<br>
+          📊 プロジェクト情報から自動生成<br>
+          🎯 フォロワー増加のコツ<br><br>
+          どのようなことをお聞きしたいですか？
+        </div>
+      </div>
+      
+      <div class="ai-input">
+        <input type="text" id="aiInput" placeholder="AIに質問や相談をしてください..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button class="btn btn-primary" onclick="sendMessage()">送信</button>
+      </div>
+      
+      <hr style="margin: 30px 0;">
+      
+      <h2>📊 投稿履歴</h2>
+      <div class="tweet-history" id="tweetHistory">
+        <div class="tweet-item">
+          <div class="tweet-meta">
+            <span>2025-07-29 14:30</span>
+            <span class="status-badge status-scheduled">予約済み</span>
+          </div>
+          <div>shuumyアプリ、カレンダー表示を大幅改善！視認性が劇的にアップしました 📅✨</div>
+        </div>
+        <div class="tweet-item">
+          <div class="tweet-meta">
+            <span>2025-07-28 10:15</span>
+            <span class="status-badge status-posted">投稿済み</span>
+          </div>
+          <div>chokushiiの新機能開発中。AIチャット機能でより良い内省体験を 🤖💭</div>
+        </div>
+        <div class="tweet-item">
+          <div class="tweet-meta">
+            <span>2025-07-27 16:45</span>
+            <span class="status-badge status-posted">投稿済み</span>
+          </div>
+          <div>広告配信プラットフォームの開発開始！自動化で効率的な投稿管理を目指します 🚀</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- プロジェクト管理セクション（フルワイズ） -->
+  <div id="project-section" style="display:none; max-width: 1200px; margin: 0 auto; padding: 20px;">
+    <div class="section" style="grid-column: span 2;">
+      <h2>📂 プロジェクト管理</h2>
+      
+      <!-- プロジェクト一元管理設定 -->
+      <div style="background: #e8f4f8; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 2px solid #1da1f2;">
+        <h3 style="margin-bottom: 15px; color: #1da1f2;">📁 プロジェクト一元管理</h3>
+        <p style="margin-bottom: 15px; color: #333; font-size: 14px;">
+          複数のプロジェクトを管理しているディレクトリを指定すると、プロジェクト候補を自動で表示します
+        </p>
+        
+        <div class="form-row">
+          <label>管理ディレクトリ:</label>
+          <input type="text" id="centralDirectory" placeholder="例: /Users/username/develop" readonly>
+          <button class="btn btn-secondary" onclick="selectCentralDirectory()">📁 選択</button>
+          <button class="btn btn-secondary" id="toggleCandidatesBtn" onclick="toggleCandidatesList()" style="display: none;">📋 候補を表示</button>
+        </div>
+        
+        <div id="projectCandidates" style="display: none; margin-top: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="color: #333; margin: 0;">🔍 発見されたプロジェクト</h4>
+            <div>
+              <button class="btn btn-secondary" onclick="discoverProjects(currentCentralDirectory)" style="font-size: 12px; padding: 4px 8px; margin-right: 8px;">🔄 更新</button>
+              <button class="btn btn-secondary" onclick="closeCandidatesList()" style="font-size: 12px; padding: 4px 8px;">✖ 閉じる</button>
+            </div>
+          </div>
+          <div id="candidatesList" style="max-height: 300px; overflow-y: auto; border: 1px solid #e1e8ed; border-radius: 8px; background: white;">
+            <!-- プロジェクト候補がここに表示される -->
+          </div>
+          <div style="margin-top: 8px; font-size: 12px; color: #657786; text-align: center;">
+            プロジェクトを選択しても候補リストは表示されたままです 📝
+          </div>
+        </div>
+      </div>
+
+      <!-- 新規プロジェクト登録 -->
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+        <h3 style="margin-bottom: 15px; color: #333;">新規プロジェクト登録</h3>
+        
+        <div class="form-row" style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+          <label style="color: #856404; font-weight: bold;">プロジェクトディレクトリ: *</label>
+          <input type="text" id="newProjectPath" placeholder="プロジェクトのディレクトリパス" readonly style="background: #fff;">
+          <button class="btn btn-primary" onclick="selectProjectDirectory()">📂 別のフォルダを選択</button>
+        </div>
+        
+        <div class="form-row">
+          <label>プロジェクト名:</label>
+          <input type="text" id="newProjectName" placeholder="例: 私の素晴らしいアプリ">
+        </div>
+        
+        <div class="form-row">
+          <label>説明:</label>
+          <div style="position: relative; flex: 1;">
+            <textarea id="newProjectDescription" placeholder="プロジェクトの詳細説明を入力してください..." style="min-height: 180px; padding: 16px 20px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 15px; line-height: 1.6; resize: vertical; max-height: 400px; width: 100%; box-sizing: border-box;"></textarea>
+            <div id="aiLoadingOverlay" class="ai-loading-overlay" style="display: none;">
+              <div class="ai-loading-content">
+                <div class="loading-spinner loading-spinner-large"></div>
+                <span id="aiLoadingText">🤖 AI説明を生成中...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="text-align: right; margin-top: -5px; margin-bottom: 15px;">
+          <button type="button" id="aiRegenerateBtn" class="btn btn-secondary" onclick="generateAIDescription()" style="font-size: 12px; padding: 6px 12px;">🔄 AI説明再生成</button>
+        </div>
+        
+        <div class="form-row">
+          <label>カテゴリ:</label>
+          <select id="newProjectCategory">
+            <option value="web">Webアプリ</option>
+            <option value="mobile">モバイルアプリ</option>
+            <option value="desktop">デスクトップアプリ</option>
+            <option value="tool">開発ツール</option>
+            <option value="game">ゲーム</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+        
+        <div class="form-row">
+          <label>技術スタック:</label>
+          <input type="text" id="newProjectTech" placeholder="例: React, Node.js, MongoDB">
+        </div>
+        
+        <h4 style="margin: 20px 0 10px 0; color: #333;">自動投稿設定</h4>
+        
+        <div class="form-row">
+          <label>配信プラットフォーム:</label>
+          <select id="newProjectPlatform" onchange="togglePlatformSettings()">
+            <option value="">選択してください</option>
+            <option value="twitter">Twitter</option>
+            <option value="instagram">Instagram (将来対応予定)</option>
+            <option value="youtube">YouTube (将来対応予定)</option>
+            <option value="facebook">Facebook (将来対応予定)</option>
+          </select>
+        </div>
+        
+        <!-- Twitter設定 -->
+        <div id="twitterSettings" style="display: none; background: #f8f9ff; padding: 15px; border-radius: 8px; margin: 15px 0;">
+          <h5 style="margin: 0 0 10px 0; color: #1da0f2;">🐦 Twitter API設定</h5>
+          <p style="font-size: 12px; color: #666; margin: 0 0 15px 0;">
+            Twitter Developer Portalで取得したAPI情報を入力してください。（後から設定することも可能です）
+          </p>
+          
+          <div class="form-row">
+            <label>API Key:</label>
+            <input type="password" id="newProjectTwitterApiKey" placeholder="Twitter API Key (Optional)">
+          </div>
+          
+          <div class="form-row">
+            <label>API Secret:</label>
+            <input type="password" id="newProjectTwitterApiSecret" placeholder="Twitter API Secret (Optional)">
+          </div>
+          
+          <div class="form-row">
+            <label>Access Token:</label>
+            <input type="password" id="newProjectTwitterAccessToken" placeholder="Twitter Access Token (Optional)">
+          </div>
+          
+          <div class="form-row">
+            <label>Access Token Secret:</label>
+            <input type="password" id="newProjectTwitterAccessTokenSecret" placeholder="Twitter Access Token Secret (Optional)">
+          </div>
+          
+          <div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin-top: 10px;">
+            <small style="color: #856404;">
+              <strong>💡 ヒント:</strong> これらの情報は暗号化されて保存されます。設定しない場合は手動投稿のみとなります。
+            </small>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <label>投稿頻度:</label>
+          <select id="newProjectFrequency">
+            <option value="daily">毎日</option>
+            <option value="every2days">2日に1回</option>
+            <option value="weekly">週1回</option>
+            <option value="biweekly">2週間に1回</option>
+            <option value="monthly">月1回</option>
+          </select>
+        </div>
+        
+        <div class="form-row">
+          <label>投稿時間:</label>
+          <input type="time" id="newProjectTime" value="10:00">
+        </div>
+        
+        <div class="form-row">
+          <label>投稿期間:</label>
+          <select id="newProjectDuration">
+            <option value="1month">1ヶ月間</option>
+            <option value="3months">3ヶ月間</option>
+            <option value="6months">6ヶ月間</option>
+            <option value="1year">1年間</option>
+            <option value="unlimited">無制限</option>
+          </select>
+        </div>
+        
+        <div style="text-align: right; margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="resetProjectForm()">リセット</button>
+          <button class="btn btn-primary" onclick="registerProject()">プロジェクト登録</button>
+        </div>
+      </div>
+      
+      <!-- 登録済みプロジェクト一覧 -->
+      <div>
+        <h3 style="margin-bottom: 15px; color: #333;">登録済みプロジェクト</h3>
+        <div id="projectList" class="project-list">
+          <!-- プロジェクト一覧がここに表示される -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase セクション -->
+  <div id="firebase-section" style="display:none; max-width: 1200px; margin: 0 auto; padding: 20px;">
+    <div class="section">
+      <h2>🔥 Firebase クラウド連携</h2>
+      
+      <!-- Firebase 接続状況 -->
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 10px 0; color: #333;">📡 接続状況</h3>
+        <div id="firebaseConnectionStatus">
+          <span style="color: #ffc107;">⏳ 接続確認中...</span>
+        </div>
+        <button class="btn btn-secondary" onclick="checkFirebaseConnection()" style="margin-top: 10px;">
+          🔄 接続確認
+        </button>
+      </div>
+
+      <!-- Firebase ログイン -->
+      <div id="firebaseLoginSection">
+        <h3 style="color: #333; margin-bottom: 15px;">🔐 ログイン</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+          <!-- メール・パスワードログイン -->
+          <div style="background: #fff; padding: 20px; border: 2px solid #e1e8ed; border-radius: 12px;">
+            <h4 style="margin: 0 0 15px 0; color: #1da1f2;">📧 メール・パスワード</h4>
+            <div style="margin-bottom: 10px;">
+              <input type="email" id="firebaseEmail" placeholder="メールアドレス" 
+                     style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 15px;">
+              <input type="password" id="firebasePassword" placeholder="パスワード" 
+                     style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button class="btn btn-primary" onclick="firebaseLogin()" style="flex: 1;">
+                🔑 ログイン
+              </button>
+              <button class="btn btn-secondary" onclick="firebaseCreateAccount()" style="flex: 1;">
+                📝 新規登録
+              </button>
+            </div>
+          </div>
+
+          <!-- Googleログイン -->
+          <div style="background: #fff; padding: 20px; border: 2px solid #e1e8ed; border-radius: 12px;">
+            <h4 style="margin: 0 0 15px 0; color: #db4437;">🌐 Google アカウント</h4>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+              Googleアカウントでかんたんログイン
+            </p>
+            <button class="btn btn-primary" onclick="firebaseGoogleLogin()" 
+                    style="width: 100%; background: #db4437; border-color: #db4437;">
+              <img src="data:image/svg+xml;base64,..." style="width: 18px; height: 18px; margin-right: 8px;">
+              Google でログイン
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ユーザー情報表示 -->
+      <div id="firebaseUserInfo" style="display: none;">
+        <!-- ログイン済みの場合にユーザー情報が表示される -->
+      </div>
+
+      <!-- Firebase 機能メニュー -->
+      <div id="firebaseFunctions" style="display: none;">
+        <h3 style="color: #333; margin: 20px 0 15px 0;">⚡ Firebase 機能</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+          <!-- プロジェクト同期 -->
+          <div class="firebase-function-card">
+            <h4>🔄 プロジェクト同期</h4>
+            <p>ローカルプロジェクトをクラウドに同期</p>
+            <button class="btn btn-primary firebase-sync-btn" onclick="syncAllProjectsToFirebase()" disabled>
+              クラウドに同期
+            </button>
+          </div>
+
+          <!-- 投稿履歴 -->
+          <div class="firebase-function-card">
+            <h4>📊 投稿履歴</h4>
+            <p>過去の投稿とスケジュールを確認</p>
+            <button class="btn btn-primary firebase-sync-btn" onclick="showFirebaseHistory()" disabled>
+              履歴を表示
+            </button>
+          </div>
+
+          <!-- 自動投稿設定 -->
+          <div class="firebase-function-card">
+            <h4>⏰ 自動投稿設定</h4>
+            <p>定期投稿のスケジュール管理</p>
+            <button class="btn btn-primary firebase-sync-btn" onclick="showScheduleSettings()" disabled>
+              設定を開く
+            </button>
+          </div>
+        </div>
+
+        <!-- Firebase データ表示エリア -->
+        <div id="firebaseDataDisplay" style="margin-top: 20px;">
+          <!-- Firebase からのデータがここに表示される -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Twitter API セクション -->
+  <div id="twitter-section" style="display:none; max-width: 1200px; margin: 0 auto; padding: 20px;">
+    <div class="section">
+      <h2>🐦 Twitter API 設定</h2>
+      
+      <!-- Twitter API 設定状況 -->
+      <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #1da1f2;">
+        <h3 style="margin: 0 0 10px 0; color: #1da1f2;">📊 設定状況</h3>
+        <div id="twitterStatusIndicator">
+          <span style="color: #657786;">❌ 未設定</span>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <button id="testTwitterConnectionBtn" class="btn btn-secondary" onclick="testTwitterConnection()" disabled>
+            🔌 接続テスト
+          </button>
+          <button id="clearTwitterCredentialsBtn" class="btn btn-secondary" onclick="clearTwitterCredentials()" disabled>
+            🗑️ 設定をクリア
+          </button>
+        </div>
+      </div>
+
+      <!-- Twitter API 認証情報設定 -->
+      <div style="background: #fff; padding: 20px; border: 2px solid #e1e8ed; border-radius: 12px; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 15px 0; color: #1da1f2;">🔐 API認証情報</h3>
+        
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #856404; font-size: 14px;">
+            <strong>📝 設定手順:</strong><br>
+            1. <a href="https://developer.twitter.com/apps" target="_blank" style="color: #1da1f2;">Twitter Developer Portal</a> でアプリを作成<br>
+            2. API Keys and Tokensタブから以下の情報を取得<br>
+            3. 情報を入力して「保存」をクリック<br>
+            4. 接続テストで動作確認
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div>
+            <label style="display: block; margin: 0 0 5px 0; font-weight: 600;">API Key:</label>
+            <input type="password" id="twitterApiKey" placeholder="API Key を入力" 
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          
+          <div>
+            <label style="display: block; margin: 0 0 5px 0; font-weight: 600;">API Secret Key:</label>
+            <input type="password" id="twitterApiSecret" placeholder="API Secret Key を入力" 
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          
+          <div>
+            <label style="display: block; margin: 0 0 5px 0; font-weight: 600;">Access Token:</label>
+            <input type="password" id="twitterAccessToken" placeholder="Access Token を入力" 
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          
+          <div>
+            <label style="display: block; margin: 0 0 5px 0; font-weight: 600;">Access Token Secret:</label>
+            <input type="password" id="twitterAccessTokenSecret" placeholder="Access Token Secret を入力" 
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+        </div>
+        
+        <div style="margin-top: 20px; text-align: center;">
+          <button class="btn btn-primary" onclick="saveTwitterCredentials()">
+            💾 認証情報を保存
+          </button>
+        </div>
+      </div>
+
+      <!-- ツイートテスト機能 -->
+      <div style="background: #f8f9ff; padding: 20px; border: 2px solid #1da1f2; border-radius: 12px;">
+        <h3 style="margin: 0 0 15px 0; color: #1da1f2;">🚀 テスト投稿</h3>
+        
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; margin: 0 0 5px 0; font-weight: 600;">テスト投稿内容:</label>
+          <textarea id="testTweetText" placeholder="テスト投稿の内容を入力してください..." 
+                    style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"
+                    maxlength="280" oninput="updateTestTweetCharCount()"></textarea>
+          <div id="testTweetCharCount" style="text-align: right; margin: 5px 0; color: #657786; font-size: 14px;">0 / 280</div>
+        </div>
+        
+        <div style="text-align: center;">
+          <button id="testTweetBtn" class="btn btn-success twitter-post-btn" onclick="postTestTweet()" disabled>
+            📤 テスト投稿を送信
+          </button>
+        </div>
+        
+        <div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin-top: 15px;">
+          <small style="color: #856404;">
+            <strong>⚠️ 注意:</strong> テスト投稿は実際にTwitterに投稿されます。内容をよく確認してから送信してください。
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Google広告管理セクション -->
+    <div class="section" id="google-ads-section" style="display: none;">
+      <h2>📊 Google広告管理</h2>
+
+      <!-- Google Ads API設定 -->
+      <div class="form-group">
+        <h3>🔐 Google Ads API認証設定</h3>
+        <div class="status-card" id="googleAdsStatus">
+          <div class="status-indicator">🔴 未設定</div>
+          <div>Google Ads API認証情報が設定されていません</div>
+        </div>
+
+        <div class="form-row">
+          <label>Client ID:</label>
+          <input type="text" id="googleAdsClientId" placeholder="Google OAuth 2.0 Client ID">
+        </div>
+        <div class="form-row">
+          <label>Client Secret:</label>
+          <input type="password" id="googleAdsClientSecret" placeholder="Google OAuth 2.0 Client Secret">
+        </div>
+        <div class="form-row">
+          <label>Refresh Token:</label>
+          <input type="text" id="googleAdsRefreshToken" placeholder="OAuth 2.0 Refresh Token">
+        </div>
+        <div class="form-row">
+          <label>Customer ID:</label>
+          <input type="text" id="googleAdsCustomerId" placeholder="Google Ads Customer ID (例: 123-456-7890)">
+        </div>
+
+        <div style="text-align: right; margin-top: 15px;">
+          <button class="btn btn-secondary" onclick="clearGoogleAdsCredentials()">クリア</button>
+          <button class="btn btn-secondary" onclick="testGoogleAdsConnection()">接続テスト</button>
+          <button class="btn btn-primary" onclick="saveGoogleAdsCredentials()">保存</button>
+        </div>
+      </div>
+
+      <!-- キャンペーン管理 -->
+      <div class="form-group">
+        <h3>🎯 キャンペーン管理</h3>
+        
+        <div class="campaign-controls">
+          <button class="btn btn-primary" onclick="refreshCampaigns()">🔄 キャンペーン一覧更新</button>
+          <button class="btn btn-success" onclick="showCreateCampaignModal()">➕ 新規キャンペーン作成</button>
+        </div>
+
+        <div id="campaignsList" class="campaigns-list">
+          <div class="empty-state">
+            <p>📋 キャンペーン情報を読み込むには「キャンペーン一覧更新」をクリックしてください</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- キャンペーン作成モーダル -->
+      <div id="createCampaignModal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>➕ 新規キャンペーン作成</h3>
+            <button class="modal-close" onclick="hideCreateCampaignModal()">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>キャンペーン名:</label>
+              <input type="text" id="campaignName" placeholder="例: YouTube動画広告_2025年1月">
+            </div>
+            <div class="form-row">
+              <label>キャンペーンタイプ:</label>
+              <select id="campaignType">
+                <option value="PERFORMANCE_MAX">Performance Max (推奨)</option>
+                <option value="DEMAND_GEN">Demand Gen</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>予算ID:</label>
+              <input type="text" id="campaignBudgetId" placeholder="事前に作成した予算ID">
+            </div>
+            <div class="form-row">
+              <label>入札戦略:</label>
+              <select id="campaignBiddingStrategy">
+                <option value="MAXIMIZE_CONVERSIONS">コンバージョン数の最大化</option>
+                <option value="MAXIMIZE_CONVERSION_VALUE">コンバージョン値の最大化</option>
+                <option value="TARGET_CPA">目標コンバージョン単価</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="hideCreateCampaignModal()">キャンセル</button>
+            <button class="btn btn-primary" onclick="createCampaign()">作成</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- YouTube分析セクション -->
+    <div class="section" id="youtube-section" style="display: none;">
+      <h2>📺 YouTube分析</h2>
+
+      <!-- YouTube Data API設定 -->
+      <div class="form-group">
+        <h3>🔐 YouTube Data API認証設定</h3>
+        <div class="status-card" id="youtubeStatus">
+          <div class="status-indicator">🔴 未設定</div>
+          <div>YouTube Data API認証情報が設定されていません</div>
+        </div>
+
+        <div class="form-row">
+          <label>API Key:</label>
+          <input type="password" id="youtubeApiKey" placeholder="YouTube Data API v3 API Key">
+        </div>
+
+        <div style="text-align: right; margin-top: 15px;">
+          <button class="btn btn-secondary" onclick="clearYouTubeCredentials()">クリア</button>
+          <button class="btn btn-secondary" onclick="testYouTubeConnection()">接続テスト</button>
+          <button class="btn btn-primary" onclick="saveYouTubeCredentials()">保存</button>
+        </div>
+      </div>
+
+      <!-- チャンネル分析 -->
+      <div class="form-group">
+        <h3>📊 チャンネル分析</h3>
+        
+        <div class="form-row">
+          <label>チャンネルID:</label>
+          <input type="text" id="channelId" placeholder="UCxxxxxxxxxxxxxxxxxxxxxxx">
+          <button class="btn btn-primary" onclick="analyzeChannel()">分析開始</button>
+        </div>
+
+        <div id="channelAnalysis" class="analysis-results">
+          <!-- 分析結果がここに表示されます -->
+        </div>
+      </div>
+
+      <!-- 動画検索 -->
+      <div class="form-group">
+        <h3>🔍 動画検索</h3>
+        
+        <div class="form-row">
+          <label>検索キーワード:</label>
+          <input type="text" id="searchQuery" placeholder="検索したいキーワード">
+          <button class="btn btn-primary" onclick="searchVideos()">検索</button>
+        </div>
+
+        <div id="searchResults" class="search-results">
+          <!-- 検索結果がここに表示されます -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 統合認証管理セクション -->
+    <div class="section" id="multi-auth-section" style="display: none;">
+      <h2>🔐 統合認証管理</h2>
+
+      <!-- 全プラットフォーム状況 -->
+      <div class="form-group">
+        <h3>📊 プラットフォーム認証状況</h3>
+        
+        <div class="platform-overview">
+          <button class="btn btn-primary" onclick="refreshAllPlatformStatus()">🔄 状況更新</button>
+          <button class="btn btn-success" onclick="testAllConnections()">🔗 全接続テスト</button>
+        </div>
+
+        <div id="platformStatusGrid" class="platform-status-grid">
+          <!-- プラットフォーム状況がここに表示されます -->
+        </div>
+      </div>
+
+      <!-- 統合キャンペーン作成 -->
+      <div class="form-group">
+        <h3>🚀 統合キャンペーン作成</h3>
+        
+        <div class="form-row">
+          <label>キャンペーン名:</label>
+          <input type="text" id="crossPlatformCampaignName" placeholder="統合キャンペーン名">
+        </div>
+
+        <div class="form-row">
+          <label>対象プラットフォーム:</label>
+          <div class="platform-checkboxes">
+            <label><input type="checkbox" id="platformGoogleAds" value="googleAds"> Google Ads</label>
+            <label><input type="checkbox" id="platformTwitter" value="twitter"> Twitter</label>
+            <label><input type="checkbox" id="platformYouTube" value="youtubeData"> YouTube (分析のみ)</label>
+          </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 15px;">
+          <button class="btn btn-primary" onclick="createCrossPlatformCampaign()">統合キャンペーン作成</button>
+        </div>
+      </div>
+
+      <!-- 統合レポート -->
+      <div class="form-group">
+        <h3>📈 統合レポート</h3>
+        
+        <div class="report-controls">
+          <button class="btn btn-primary" onclick="generateCrossPlatformReport()">📊 レポート生成</button>
+        </div>
+
+        <div id="crossPlatformReport" class="report-results">
+          <!-- レポート結果がここに表示されます -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="firebase-frontend.js"></script>
+  <script src="twitter-frontend.js"></script>
+  <script src="google-ads-frontend.js"></script>
+  <script src="youtube-frontend.js"></script>
+  <script src="multi-auth-frontend.js"></script>
+  <script>
+    // 最初にログを出力して、JavaScriptが読み込まれていることを確認
+    console.log('🚀 JavaScript読み込み開始');
+    console.log('現在の時刻:', new Date().toISOString());
+    
+    let tweetHistory = [];
+    let aiConversation = [];
+    let registeredProjects = [];
+    let currentProjectCandidates = []; // プロジェクト候補をグローバルで保持
+    let currentCentralDirectory = ''; // 現在の一元管理ディレクトリ
+
+    // 即座に実行されるテスト
+    console.log('🔧 変数定義完了');
+
+    // テスト関数（最初に定義）
+    function testFunction() {
+      console.log('=== テスト関数実行 ===');
+      alert('テスト関数が実行されました！showTab関数も定義されているはずです。');
+      
+      // showTab関数の存在確認
+      console.log('showTab関数の型:', typeof showTab);
+      console.log('showTab関数:', showTab);
+      
+      // 強制的にプロジェクトタブを実行
+      try {
+        showTab('projects');
+      } catch (error) {
+        console.error('showTab実行エラー:', error);
+        alert('showTabエラー: ' + error.message);
+      }
+    }
+
+    console.log('🔧 testFunction定義完了');
+
+    // タブ切り替え（最初に定義）
+    function showTab(tab) {
+      console.log('=== タブ切り替え開始 ===');
+      console.log('切り替え先タブ:', tab);
+      
+      // 要素の存在確認
+      const mainContainer = document.querySelector('.container');
+      const projectSection = document.getElementById('project-section');
+      
+      console.log('メインコンテナ存在:', !!mainContainer);
+      console.log('プロジェクトセクション存在:', !!projectSection);
+      
+      if (projectSection) {
+        console.log('プロジェクトセクション現在のdisplay:', projectSection.style.display);
+      }
+      
+      // タブの活性化
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      const targetTab = document.getElementById(`${tab}-tab`);
+      if (targetTab) {
+        targetTab.classList.add('active');
+        console.log('タブアクティブ化成功');
+      } else {
+        console.error('対象タブが見つかりません:', `${tab}-tab`);
+      }
+      
+      if (tab === 'projects') {
+        console.log('プロジェクト管理タブ処理開始');
+        
+        // プロジェクト管理タブの場合
+        if (mainContainer) {
+          mainContainer.style.display = 'none';
+          console.log('メインコンテナを非表示にしました');
+        }
+        
+        if (projectSection) {
+          projectSection.style.display = 'block';
+          console.log('プロジェクトセクションを表示しました');
+          console.log('プロジェクトセクション新しいdisplay:', projectSection.style.display);
+          updateProjectList();
+          
+          // プロジェクト候補の状態を復元（少し遅延して実行）
+          setTimeout(() => {
+            restoreProjectCandidatesState();
+          }, 200);
+        } else {
+          console.error('プロジェクトセクションが見つかりません！');
+        }
+      } else if (tab === 'firebase') {
+        console.log('Firebase タブ処理開始');
+        
+        // Firebase タブの場合
+        if (mainContainer) mainContainer.style.display = 'none';
+        if (projectSection) projectSection.style.display = 'none';
+        
+        // 他のセクションを非表示
+        const twitterSection = document.getElementById('twitter-section');
+        if (twitterSection) twitterSection.style.display = 'none';
+        const googleAdsSection = document.getElementById('google-ads-section');
+        if (googleAdsSection) googleAdsSection.style.display = 'none';
+        const youtubeSection = document.getElementById('youtube-section');
+        if (youtubeSection) youtubeSection.style.display = 'none';
+        const multiAuthSection = document.getElementById('multi-auth-section');
+        if (multiAuthSection) multiAuthSection.style.display = 'none';
+        
+        const firebaseSection = document.getElementById('firebase-section');
+        if (firebaseSection) {
+          firebaseSection.style.display = 'block';
+          console.log('Firebase セクションを表示しました');
+          
+          // Firebase 初期化
+          initializeFirebaseUI();
+        } else {
+          console.error('Firebase セクションが見つかりません！');
+        }
+      } else if (tab === 'twitter') {
+        console.log('Twitter タブ処理開始');
+        
+        // Twitter タブの場合
+        if (mainContainer) mainContainer.style.display = 'none';
+        if (projectSection) projectSection.style.display = 'none';
+        
+        // 他のセクションを非表示
+        const firebaseSection = document.getElementById('firebase-section');
+        if (firebaseSection) firebaseSection.style.display = 'none';
+        const googleAdsSection = document.getElementById('google-ads-section');
+        if (googleAdsSection) googleAdsSection.style.display = 'none';
+        const youtubeSection = document.getElementById('youtube-section');
+        if (youtubeSection) youtubeSection.style.display = 'none';
+        const multiAuthSection = document.getElementById('multi-auth-section');
+        if (multiAuthSection) multiAuthSection.style.display = 'none';
+        
+        const twitterSection = document.getElementById('twitter-section');
+        if (twitterSection) {
+          twitterSection.style.display = 'block';
+          console.log('Twitter セクションを表示しました');
+          
+          // Twitter 初期化
+          initializeTwitterUI();
+        } else {
+          console.error('Twitter セクションが見つかりません！');
+        }
+      } else if (tab === 'google-ads') {
+        console.log('Google広告 タブ処理開始');
+        
+        // Google広告 タブの場合
+        if (mainContainer) mainContainer.style.display = 'none';
+        if (projectSection) projectSection.style.display = 'none';
+        
+        // 他のセクションを非表示
+        const firebaseSection = document.getElementById('firebase-section');
+        if (firebaseSection) firebaseSection.style.display = 'none';
+        const twitterSection = document.getElementById('twitter-section');
+        if (twitterSection) twitterSection.style.display = 'none';
+        const youtubeSection = document.getElementById('youtube-section');
+        if (youtubeSection) youtubeSection.style.display = 'none';
+        const multiAuthSection = document.getElementById('multi-auth-section');
+        if (multiAuthSection) multiAuthSection.style.display = 'none';
+        
+        const googleAdsSection = document.getElementById('google-ads-section');
+        if (googleAdsSection) {
+          googleAdsSection.style.display = 'block';
+          console.log('Google広告 セクションを表示しました');
+        } else {
+          console.error('Google広告 セクションが見つかりません！');
+        }
+      } else if (tab === 'youtube') {
+        console.log('YouTube分析 タブ処理開始');
+        
+        // YouTube分析 タブの場合
+        if (mainContainer) mainContainer.style.display = 'none';
+        if (projectSection) projectSection.style.display = 'none';
+        
+        // 他のセクションを非表示
+        const firebaseSection = document.getElementById('firebase-section');
+        if (firebaseSection) firebaseSection.style.display = 'none';
+        const twitterSection = document.getElementById('twitter-section');
+        if (twitterSection) twitterSection.style.display = 'none';
+        const googleAdsSection = document.getElementById('google-ads-section');
+        if (googleAdsSection) googleAdsSection.style.display = 'none';
+        const multiAuthSection = document.getElementById('multi-auth-section');
+        if (multiAuthSection) multiAuthSection.style.display = 'none';
+        
+        const youtubeSection = document.getElementById('youtube-section');
+        if (youtubeSection) {
+          youtubeSection.style.display = 'block';
+          console.log('YouTube分析 セクションを表示しました');
+        } else {
+          console.error('YouTube分析 セクションが見つかりません！');
+        }
+      } else if (tab === 'multi-auth') {
+        console.log('統合認証管理 タブ処理開始');
+        
+        // 統合認証管理 タブの場合
+        if (mainContainer) mainContainer.style.display = 'none';
+        if (projectSection) projectSection.style.display = 'none';
+        
+        // 他のセクションを非表示
+        const firebaseSection = document.getElementById('firebase-section');
+        if (firebaseSection) firebaseSection.style.display = 'none';
+        const twitterSection = document.getElementById('twitter-section');
+        if (twitterSection) twitterSection.style.display = 'none';
+        const googleAdsSection = document.getElementById('google-ads-section');
+        if (googleAdsSection) googleAdsSection.style.display = 'none';
+        const youtubeSection = document.getElementById('youtube-section');
+        if (youtubeSection) youtubeSection.style.display = 'none';
+        
+        const multiAuthSection = document.getElementById('multi-auth-section');
+        if (multiAuthSection) {
+          multiAuthSection.style.display = 'block';
+          console.log('統合認証管理 セクションを表示しました');
+        } else {
+          console.error('統合認証管理 セクションが見つかりません！');
+        }
+      } else {
+        // その他のタブの場合
+        if (mainContainer) mainContainer.style.display = 'grid';
+        if (projectSection) projectSection.style.display = 'none';
+        
+        // Firebase セクションも非表示
+        const firebaseSection = document.getElementById('firebase-section');
+        if (firebaseSection) firebaseSection.style.display = 'none';
+        
+        // 新しいセクションも非表示
+        const twitterSection = document.getElementById('twitter-section');
+        if (twitterSection) twitterSection.style.display = 'none';
+        
+        const googleAdsSection = document.getElementById('google-ads-section');
+        if (googleAdsSection) googleAdsSection.style.display = 'none';
+        
+        const youtubeSection = document.getElementById('youtube-section');
+        if (youtubeSection) youtubeSection.style.display = 'none';
+        
+        const multiAuthSection = document.getElementById('multi-auth-section');
+        if (multiAuthSection) multiAuthSection.style.display = 'none';
+        
+        // 通常のセクション表示切り替え
+        const sections = {
+          'tweet': 'tweet-section',
+          'ai': 'ai-section',
+          'settings': 'settings-section'
+        };
+        
+        // 全セクションを非表示
+        Object.values(sections).forEach(sectionId => {
+          const section = document.getElementById(sectionId);
+          if (section) {
+            section.style.display = 'none';
+          }
+        });
+        
+        // 選択されたセクションを表示
+        const targetSectionId = sections[tab];
+        if (targetSectionId) {
+          const targetSection = document.getElementById(targetSectionId);
+          if (targetSection) {
+            targetSection.style.display = 'block';
+          }
+        }
+      }
+    }
+
+    console.log('🔧 showTab関数定義完了');
+
+    // 文字カウント
+    function initCharCount() {
+      const tweetTextEl = document.getElementById('tweetText');
+      if (tweetTextEl) {
+        tweetTextEl.addEventListener('input', function() {
+          const count = this.value.length;
+          document.getElementById('charCount').textContent = count;
+          document.getElementById('charCount').style.color = count > 260 ? '#e0245e' : '#657786';
+          
+          // プレビュー更新
+          updatePreview();
+        });
+      }
+    }
+
+    // スケジュール設定の表示切り替え
+    function initScheduleToggle() {
+      const scheduleTypeEl = document.getElementById('scheduleType');
+      if (scheduleTypeEl) {
+        scheduleTypeEl.addEventListener('change', function() {
+          const scheduleTime = document.getElementById('scheduleTime');
+          if (this.value === 'scheduled') {
+            scheduleTime.style.display = 'block';
+            // デフォルトを1時間後に設定
+            const now = new Date();
+            now.setHours(now.getHours() + 1);
+            scheduleTime.value = now.toISOString().slice(0, 16);
+          } else {
+            scheduleTime.style.display = 'none';
+          }
+          updatePreview();
+        });
+      }
+    }
+
+    // プレビュー更新
+    function updatePreview() {
+      const textEl = document.getElementById('tweetText');
+      const preview = document.getElementById('tweetPreview');
+      const previewText = document.getElementById('previewText');
+      
+      if (textEl && preview && previewText) {
+        const text = textEl.value;
+        if (text.trim()) {
+          preview.style.display = 'block';
+          previewText.textContent = text;
+        } else {
+          preview.style.display = 'none';
+        }
+      }
+    }
+
+    // プロジェクト情報からAI生成
+    async function generateFromProject() {
+      const project = document.getElementById('projectSelect').value;
+      if (!project) {
+        alert('プロジェクトを選択してください');
+        return;
+      }
+      
+      // AIによる投稿生成を実行
+      await generateTweetWithAI(project);
+    }
+
+    // Ollama AIを使用してツイートを生成
+    async function generateTweetWithAI(projectName) {
+      try {
+        // ローディング表示
+        showAILoading(true);
+        
+        // プロジェクト分析
+        const analysisResult = await window.electronAPI.invoke('ollama-analyze-project', projectName);
+        if (!analysisResult.success) {
+          throw new Error(analysisResult.error);
+        }
+        
+        // AI投稿生成
+        const tweetResult = await window.electronAPI.invoke('ollama-generate-tweet', analysisResult.data);
+        if (!tweetResult.success) {
+          throw new Error(tweetResult.error);
+        }
+        
+        // 生成されたツイートを表示
+        document.getElementById('tweetText').value = tweetResult.data;
+        updatePreview();
+        
+        // AI会話に追加
+        addAIMessage(`「${projectName}」プロジェクトを分析してツイート内容を生成しました！\n\n${tweetResult.data}\n\n修正が必要でしたらお知らせください。`);
+        
+      } catch (error) {
+        console.error('AI生成エラー:', error);
+        // フォールバック：従来の方法
+        generateFromProjectFallback(projectName);
+        addAIMessage(`AIサービスに接続できませんでした。代替案を表示しています。\nエラー: ${error.message}`);
+      } finally {
+        showAILoading(false);
+      }
+    }
+
+    // フォールバック用の投稿生成
+    function generateFromProjectFallback(project) {
+      let suggestions = {
+        'chokushii': [
+          'chokushiiで今日も内省を深めています 🤔✨ セルフリフレクションで新しい気づきを発見',
+          'AIチャット機能でより良い内省体験を提供中 🤖💭 あなたの成長をサポートします',
+          'カードメモ機能でふとした考えを記録。後から振り返ると新しい発見があります 📝'
+        ],
+        'shuumy': [
+          'shuumyアプリ、カレンダー表示を大幅改善！視認性が劇的にアップしました 📅✨',
+          'shuumy v1.1.0リリース！活動記録機能で趣味の振り返りがより楽しく 🎉',
+          '趣味の記録をもっと楽しく。シューマイで毎日の活動を可視化してみませんか？'
+        ],
+        'genshin-hensei': [
+          '今日の原神編成を考え中 ⚔️ 最適なパーティー構成でより楽しい冒険を',
+          '新キャラの編成パターンを研究中 🔍 効率的な戦略で原神ライフを充実させましょう',
+          '原神の編成情報をまとめています。皆さんのおすすめ編成も教えてください！'
+        ],
+        'general': [
+          '今日の開発進捗を振り返り中 💻 小さな積み重ねが大きな成果につながります',
+          '新しい技術を学習中 📚 常に成長し続けることの大切さを実感しています',
+          '開発者として日々感じることを共有していきます 🚀'
+        ]
+      };
+      
+      const options = suggestions[project] || suggestions['general'];
+      const suggestion = options[Math.floor(Math.random() * options.length)];
+      
+      document.getElementById('tweetText').value = suggestion;
+      updatePreview();
+    }
+
+    // AI相談メッセージ送信
+    async function sendMessage() {
+      const input = document.getElementById('aiInput');
+      const message = input.value.trim();
+      if (!message) return;
+      
+      // ユーザーメッセージを追加
+      addUserMessage(message);
+      input.value = '';
+      
+      try {
+        // ローディング表示
+        showAILoading(true);
+        
+        // Ollama AIに相談
+        const result = await window.electronAPI.invoke('ollama-chat', message, '');
+        if (result.success) {
+          addAIMessage(result.data);
+        } else {
+          throw new Error(result.error);
+        }
+        
+      } catch (error) {
+        console.error('AI相談エラー:', error);
+        // フォールバック応答
+        const response = generateAIResponseFallback(message);
+        addAIMessage(`AI接続エラーが発生しました。代替応答を表示します：\n\n${response}`);
+      } finally {
+        showAILoading(false);
+      }
+    }
+
+    function addUserMessage(message) {
+      const chat = document.getElementById('aiChat');
+      if (chat) {
+        const div = document.createElement('div');
+        div.className = 'user-message';
+        div.innerHTML = `<strong>あなた</strong><br>${message}`;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+      }
+    }
+
+    function addAIMessage(message) {
+      const chat = document.getElementById('aiChat');
+      if (chat) {
+        const div = document.createElement('div');
+        div.className = 'ai-message';
+        div.innerHTML = `<strong>AI</strong><br>${message.replace(/\n/g, '<br>')}`;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+      }
+    }
+
+    // フォールバック用のAI応答生成
+    function generateAIResponseFallback(message) {
+      const responses = {
+        '投稿時間': 'Twitterの最適な投稿時間は以下の通りです：\n\n📊 平日: 12:00-13:00（昼休み）、19:00-21:00（通勤・帰宅時間）\n📊 土日: 10:00-11:00、15:00-16:00\n\nあなたのフォロワーの活動時間も分析してより良い時間を提案できます！',
+        'フォロワー': 'フォロワーを増やすコツ：\n\n1. 🎯 一貫したテーマでの投稿\n2. 💬 他のユーザーとの積極的な交流\n3. 📸 視覚的に魅力的なコンテンツ\n4. ⏰ 定期的な投稿\n5. #️⃣ 関連性の高いハッシュタグの使用\n\n特にどの点について詳しく知りたいですか？',
+        'ハッシュタグ': '効果的なハッシュタグの選び方：\n\n✅ プロジェクト関連: #開発者 #アプリ開発 #Flutter\n✅ 技術関連: #プログラミング #エンジニア #テック\n✅ 一般的: #今日の積み重ね #学習記録\n\n2-3個程度に絞って使用するのがおすすめです！',
+        '内容': '投稿内容のアイデア：\n\n💡 開発進捗の共有\n💡 学んだことの振り返り\n💡 プロジェクトの成果物紹介\n💡 技術的な気づきや発見\n💡 開発者としての日常\n\nどのような内容について投稿したいですか？'
+      };
+      
+      for (let key in responses) {
+        if (message.includes(key)) {
+          return responses[key];
+        }
+      }
+      
+      return `「${message}」について承知しました！\n\n具体的には以下のような観点でサポートできます：\n• 投稿内容の提案\n• 最適な投稿時間のアドバイス\n• ハッシュタグの推奨\n• フォロワー増加のコツ\n\nどの点について詳しく知りたいですか？`;
+    }
+
+    // ローディング表示制御
+    function showAILoading(show) {
+      const loadingId = 'ai-loading-message';
+      const existingLoading = document.getElementById(loadingId);
+      
+      if (show) {
+        if (!existingLoading) {
+          const chat = document.getElementById('aiChat');
+          if (chat) {
+            const div = document.createElement('div');
+            div.id = loadingId;
+            div.className = 'ai-message';
+            div.innerHTML = '<strong>AI</strong><br>考え中です... 🤔';
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+          }
+        }
+      } else {
+        if (existingLoading) {
+          existingLoading.remove();
+        }
+      }
+    }
+
+    // Electron IPC bridge initialization
+    if (typeof window !== 'undefined' && !window.electronAPI) {
+      window.electronAPI = {
+        invoke: (channel, ...args) => {
+          return window.require('electron').ipcRenderer.invoke(channel, ...args);
+        }
+      };
+    }
+
+    // ツイート投稿
+    async function postTweet() {
+      const text = document.getElementById('tweetText').value.trim();
+      if (!text) {
+        alert('投稿内容を入力してください');
+        return;
+      }
+      
+      if (text.length > 280) {
+        alert('文字数が280文字を超えています');
+        return;
+      }
+      
+      const scheduleType = document.getElementById('scheduleType').value;
+      const isScheduled = scheduleType === 'scheduled';
+      
+      // Twitter APIが設定されているかチェック
+      let twitterPosted = false;
+      if (twitterFrontend.isConfigured && !isScheduled) {
+        try {
+          console.log('🐦 Twitter APIに投稿開始');
+          const twitterResult = await twitterFrontend.postTweet(text);
+          if (twitterResult.success) {
+            twitterPosted = true;
+            console.log('✅ Twitter投稿成功:', twitterResult.tweetId);
+          } else {
+            console.error('❌ Twitter投稿失敗:', twitterResult.error);
+            if (!confirm(`Twitter投稿に失敗しました: ${twitterResult.error}\n\nローカル履歴のみに保存しますか？`)) {
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('❌ Twitter投稿エラー:', error);
+          if (!confirm(`Twitter投稿エラー: ${error.message}\n\nローカル履歴のみに保存しますか？`)) {
+            return;
+          }
+        }
+      }
+      
+      // 投稿データを作成
+      const tweet = {
+        id: Date.now(),
+        text: text,
+        timestamp: new Date().toISOString(),
+        scheduled: isScheduled,
+        scheduleTime: isScheduled ? document.getElementById('scheduleTime').value : null,
+        status: isScheduled ? 'scheduled' : 'posted',
+        twitterPosted: twitterPosted,
+        platform: twitterPosted ? 'twitter' : 'local'
+      };
+      
+      // 履歴に追加
+      tweetHistory.unshift(tweet);
+      updateTweetHistory();
+      
+      // フォームをリセット
+      document.getElementById('tweetText').value = '';
+      updatePreview();
+      
+      let message;
+      if (isScheduled) {
+        message = `投稿を予約しました！ 📅\n${tweet.scheduleTime}に投稿されます。`;
+      } else if (twitterPosted) {
+        message = '✅ Twitterに投稿しました！ 🐦';
+      } else if (twitterFrontend.isConfigured) {
+        message = '⚠️ ローカル履歴に保存しました（Twitter投稿失敗）';
+      } else {
+        message = 'ローカル履歴に保存しました！ 📝\n（Twitter API未設定のため）';
+      }
+      
+      addAIMessage(message);
+      alert(message);
+    }
+
+    // 下書き保存
+    function saveDraft() {
+      const text = document.getElementById('tweetText').value.trim();
+      if (!text) {
+        alert('保存する内容がありません');
+        return;
+      }
+      
+      localStorage.setItem('tweetDraft', text);
+      alert('下書きを保存しました！');
+    }
+
+    // 投稿履歴更新
+    function updateTweetHistory() {
+      const history = document.getElementById('tweetHistory');
+      if (history) {
+        history.innerHTML = '';
+        
+        tweetHistory.forEach(tweet => {
+          const div = document.createElement('div');
+          div.className = 'tweet-item';
+          
+          const date = new Date(tweet.timestamp).toLocaleString('ja-JP');
+          const statusClass = tweet.status === 'scheduled' ? 'status-scheduled' : 'status-posted';
+          const statusText = tweet.status === 'scheduled' ? '予約済み' : '投稿済み';
+          
+          div.innerHTML = `
+            <div class="tweet-meta">
+              <span>${date}</span>
+              <span class="status-badge ${statusClass}">${statusText}</span>
+            </div>
+            <div>${tweet.text}</div>
+          `;
+          
+          history.appendChild(div);
+        });
+      }
+    }
+
+    // 一元管理ディレクトリ選択
+    async function selectCentralDirectory() {
+      try {
+        const result = await window.electronAPI.invoke('select-directory', 'プロジェクト管理ディレクトリを選択');
+        
+        if (result.success && !result.canceled) {
+          document.getElementById('centralDirectory').value = result.data;
+          
+          // プロジェクト候補を検索
+          await discoverProjects(result.data);
+          
+          // 設定を保存
+          localStorage.setItem('centralDirectory', result.data);
+        }
+      } catch (error) {
+        console.error('ディレクトリ選択エラー:', error);
+        alert('ディレクトリの選択に失敗しました');
+      }
+    }
+
+    // プロジェクト候補を発見
+    async function discoverProjects(directoryPath) {
+      try {
+        console.log('プロジェクト検索開始:', directoryPath);
+        
+        // トグルボタンを表示
+        const toggleBtn = document.getElementById('toggleCandidatesBtn');
+        if (toggleBtn) {
+          toggleBtn.style.display = 'inline-block';
+        }
+        
+        // ローディング表示
+        const candidatesDiv = document.getElementById('projectCandidates');
+        const candidatesList = document.getElementById('candidatesList');
+        candidatesDiv.style.display = 'block';
+        candidatesList.innerHTML = '<div style="padding: 20px; text-align: center; color: #1da1f2;">🔍 プロジェクトを検索中...</div>';
+        
+        // トグルボタンの状態を更新
+        if (toggleBtn) {
+          toggleBtn.innerHTML = '📋 候補を隠す';
+          toggleBtn.onclick = () => toggleCandidatesList(false);
+        }
+        
+        const result = await window.electronAPI.invoke('discover-projects', directoryPath);
+        
+        console.log('プロジェクト検索結果:', result);
+        
+        if (result.success) {
+          // 候補データをグローバルに保存
+          currentProjectCandidates = result.data;
+          displayProjectCandidates(result.data);
+          
+          // トグルボタンの状態を確認
+          const toggleBtn = document.getElementById('toggleCandidatesBtn');
+          if (toggleBtn && result.data.length > 0) {
+            toggleBtn.innerHTML = '📋 候補を隠す';
+            toggleBtn.onclick = () => toggleCandidatesList(false);
+          }
+        } else {
+          console.error('プロジェクト検索失敗:', result.error);
+          candidatesList.innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #e0245e;">
+              <p style="margin-bottom: 10px;">❌ プロジェクト検索エラー</p>
+              <p style="font-size: 14px; color: #657786;">${result.error}</p>
+              <button class="btn btn-secondary" onclick="closeCandidatesList()" style="margin-top: 10px; font-size: 12px;">閉じる</button>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('プロジェクト検索例外:', error);
+        const candidatesList = document.getElementById('candidatesList');
+        candidatesList.innerHTML = `
+          <div style="padding: 20px; text-align: center; color: #e0245e;">
+            <p style="margin-bottom: 10px;">❌ システムエラー</p>
+            <p style="font-size: 14px; color: #657786;">プロジェクト検索で予期しないエラーが発生しました</p>
+            <button class="btn btn-secondary" onclick="closeCandidatesList()" style="margin-top: 10px; font-size: 12px;">閉じる</button>
+          </div>
+        `;
+      }
+    }
+
+    // プロジェクト候補を表示
+    function displayProjectCandidates(projects) {
+      const candidatesDiv = document.getElementById('projectCandidates');
+      const candidatesList = document.getElementById('candidatesList');
+      
+      console.log('プロジェクト候補表示開始:', projects.length, '個のプロジェクト');
+      
+      if (!projects || projects.length === 0) {
+        candidatesDiv.style.display = 'block';
+        candidatesList.innerHTML = '<div style="padding: 20px; text-align: center; color: #657786;">プロジェクトが見つかりませんでした</div>';
+        return;
+      }
+      
+      const projectCards = [];
+      
+      for (let i = 0; i < projects.length; i++) {
+        try {
+          const project = projects[i];
+          console.log(`プロジェクト処理中: ${project.name || project.displayName || 'Unknown'}`);
+          
+          const badges = [];
+          
+          // 安全にバッジを追加
+          try {
+            if (project.tech) badges.push(`<span class="candidate-badge tech">${escapeHtml(project.tech)}</span>`);
+            if (project.hasPackageJson) badges.push(`<span class="candidate-badge files">package.json</span>`);
+            if (project.hasPubspecYaml) badges.push(`<span class="candidate-badge files">pubspec.yaml</span>`);
+            if (project.hasReadme) badges.push(`<span class="candidate-badge files">README</span>`);
+            if (project.hasClaude) badges.push(`<span class="candidate-badge files">CLAUDE.md</span>`);
+            
+            // 追加情報バッジ
+            if (project.codeFiles && Array.isArray(project.codeFiles) && project.codeFiles.length > 0) {
+              badges.push(`<span class="candidate-badge">${project.codeFiles.length}ファイル</span>`);
+            }
+            
+            if (project.features && Array.isArray(project.features) && project.features.length > 0) {
+              project.features.slice(0, 2).forEach(feature => {
+                if (feature && typeof feature === 'string') {
+                  badges.push(`<span class="candidate-badge tech">${escapeHtml(feature)}</span>`);
+                }
+              });
+            }
+          } catch (badgeError) {
+            console.error('バッジ生成エラー:', badgeError);
+          }
+          
+          // 安全なプロジェクトデータのエンコーディング
+          let encodedData;
+          try {
+            // 循環参照や巨大なオブジェクトを処理するため、必要な情報のみを抽出
+            const safeProject = {
+              name: project.name || '',
+              displayName: project.displayName || '',
+              path: project.path || '',
+              description: project.description || '',
+              category: project.category || 'other',
+              tech: project.tech || '',
+              features: Array.isArray(project.features) ? project.features : [],
+              codeFiles: Array.isArray(project.codeFiles) ? project.codeFiles.slice(0, 100) : [], // ファイル数制限
+              hasPackageJson: project.hasPackageJson || false,
+              hasPubspecYaml: project.hasPubspecYaml || false,
+              hasReadme: project.hasReadme || false,
+              hasClaude: project.hasClaude || false
+            };
+            encodedData = btoa(encodeURIComponent(JSON.stringify(safeProject)));
+          } catch (encodeError) {
+            console.error('プロジェクトデータエンコードエラー:', encodeError, project);
+            // フォールバック: 基本情報のみ
+            const basicProject = {
+              name: project.name || '',
+              displayName: project.displayName || '',
+              path: project.path || '',
+              description: (project.description || '').substring(0, 100),
+              category: project.category || 'other',
+              tech: (project.tech || '').substring(0, 50)
+            };
+            encodedData = btoa(encodeURIComponent(JSON.stringify(basicProject)));
+          }
+          
+          const projectCard = `
+            <div class="candidate-item">
+              <div class="candidate-info">
+                <div class="candidate-name">${escapeHtml(project.displayName || project.name || 'Unknown')}</div>
+                <div class="candidate-path">${escapeHtml(project.path || '')}</div>
+                ${project.description ? `<div class="candidate-description">${escapeHtml(project.description)}</div>` : ''}
+                <div class="candidate-badges">${badges.join('')}</div>
+              </div>
+              <div class="candidate-actions">
+                <button class="btn btn-primary" onclick="selectProjectCandidateWithData('${encodedData}')">選択</button>
+              </div>
+            </div>
+          `;
+          
+          projectCards.push(projectCard);
+          
+        } catch (projectError) {
+          console.error(`プロジェクト表示エラー (${i}):`, projectError);
+          // エラーが発生したプロジェクトはスキップ
+        }
+      }
+      
+      candidatesList.innerHTML = projectCards.join('');
+      candidatesDiv.style.display = 'block';
+      
+      console.log(`プロジェクト候補表示完了: ${projectCards.length}個表示`);
+    }
+
+    // HTMLエスケープ関数
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 選択されたプロジェクト候補をハイライト
+    function highlightSelectedCandidate(selectedPath) {
+      const candidateItems = document.querySelectorAll('.candidate-item');
+      candidateItems.forEach(item => {
+        const pathElement = item.querySelector('.candidate-path');
+        if (pathElement && pathElement.textContent.trim() === selectedPath) {
+          item.style.backgroundColor = '#e8f4f8';
+          item.style.border = '2px solid #1da1f2';
+          item.style.borderRadius = '8px';
+          // 選択されたアイテムにチェックマークを追加
+          const actionsDiv = item.querySelector('.candidate-actions');
+          if (actionsDiv && !actionsDiv.querySelector('.selected-indicator')) {
+            const originalButton = actionsDiv.innerHTML;
+            actionsDiv.innerHTML = `
+              <span class="selected-indicator" style="color: #1da1f2; font-weight: bold; margin-right: 8px;">✓ 選択済</span>
+              ${originalButton.replace('選択', '再選択')}
+            `;
+          }
+        } else {
+          item.style.backgroundColor = '';
+          item.style.border = '';
+          item.style.borderRadius = '';
+          // 未選択アイテムのボタンを復元
+          const actionsDiv = item.querySelector('.candidate-actions');
+          const selectedIndicator = actionsDiv?.querySelector('.selected-indicator');
+          if (selectedIndicator) {
+            const button = actionsDiv.querySelector('button');
+            if (button) {
+              selectedIndicator.remove();
+              button.textContent = '選択';
+            }
+          }
+        }
+      });
+    }
+
+    // プロジェクト候補の状態を復元
+    function restoreProjectCandidatesState() {
+      const centralDirectoryInput = document.getElementById('centralDirectory');
+      const toggleBtn = document.getElementById('toggleCandidatesBtn');
+      
+      console.log('プロジェクト候補状態復元開始');
+      console.log('centralDirectory値:', centralDirectoryInput?.value);
+      console.log('保存された候補数:', currentProjectCandidates.length);
+      
+      if (centralDirectoryInput && centralDirectoryInput.value) {
+        // トグルボタンを表示
+        if (toggleBtn) {
+          toggleBtn.style.display = 'inline-block';
+          console.log('トグルボタンを表示しました');
+        }
+        
+        // 候補データがある場合は即座表示
+        if (currentProjectCandidates.length > 0) {
+          console.log('保存された候補を表示中:', currentProjectCandidates.length, '個');
+          displayProjectCandidates(currentProjectCandidates);
+          
+          if (toggleBtn) {
+            toggleBtn.innerHTML = '📋 候補を隠す';
+            toggleBtn.onclick = () => toggleCandidatesList(false);
+          }
+          
+          // 選択済みプロジェクトがある場合はハイライト
+          const currentProjectPath = document.getElementById('newProjectPath')?.value;
+          if (currentProjectPath) {
+            setTimeout(() => highlightSelectedCandidate(currentProjectPath), 100);
+          }
+        } else {
+          // 候補データがない場合はトグルボタンを「表示」状態に
+          if (toggleBtn) {
+            toggleBtn.innerHTML = '📋 候補を表示';
+            toggleBtn.onclick = () => toggleCandidatesList(true);
+          }
+        }
+      }
+    }
+
+    // 候補リストを手動で閉じる機能
+    function closeCandidatesList() {
+      const candidatesDiv = document.getElementById('projectCandidates');
+      const toggleBtn = document.getElementById('toggleCandidatesBtn');
+      candidatesDiv.style.display = 'none';
+      
+      // トグルボタンを表示して「候補を表示」に変更
+      if (toggleBtn) {
+        toggleBtn.style.display = 'inline-block';
+        toggleBtn.innerHTML = '📋 候補を表示';
+        toggleBtn.onclick = () => toggleCandidatesList(true);
+      }
+    }
+
+    // 候補リストの開閉をトグル
+    function toggleCandidatesList(forceShow = false) {
+      const candidatesDiv = document.getElementById('projectCandidates');
+      const toggleBtn = document.getElementById('toggleCandidatesBtn');
+      const isCurrentlyVisible = candidatesDiv.style.display === 'block';
+      
+      console.log('トグル実行:', { forceShow, isCurrentlyVisible, candidatesCount: currentProjectCandidates.length });
+      
+      if (forceShow || !isCurrentlyVisible) {
+        // 候補を表示
+        if (currentProjectCandidates.length > 0) {
+          console.log('保存された候補を表示');
+          displayProjectCandidates(currentProjectCandidates);
+          if (toggleBtn) {
+            toggleBtn.innerHTML = '📋 候補を隠す';
+            toggleBtn.onclick = () => toggleCandidatesList(false);
+          }
+        } else if (currentCentralDirectory) {
+          console.log('候補がないため再検索実行');
+          // 候補がない場合は再検索
+          discoverProjects(currentCentralDirectory);
+        } else {
+          alert('まず管理ディレクトリを選択してください。');
+        }
+      } else {
+        // 候補を隠す
+        console.log('候補リストを隠します');
+        candidatesDiv.style.display = 'none';
+        if (toggleBtn) {
+          toggleBtn.innerHTML = '📋 候補を表示';
+          toggleBtn.onclick = () => toggleCandidatesList(true);
+        }
+      }
+    }
+
+    // プロジェクト候補を選択（詳細データ付き）
+    function selectProjectCandidateWithData(encodedData) {
+      try {
+        const project = JSON.parse(decodeURIComponent(atob(encodedData)));
+        
+        document.getElementById('newProjectPath').value = project.path;
+        document.getElementById('newProjectName').value = project.displayName || project.name;
+        document.getElementById('newProjectDescription').value = project.description;
+        document.getElementById('newProjectCategory').value = project.category;
+        document.getElementById('newProjectTech').value = project.tech;
+        
+        // プロジェクトデータを一時保存（AI生成用）
+        window.currentProjectData = project;
+        
+        // 候補リストを非表示にする
+        const candidatesDiv = document.getElementById('projectCandidates');
+        if (candidatesDiv) {
+          candidatesDiv.style.display = 'none';
+          console.log('候補リストを非表示にしました');
+        }
+        
+        // トグルボタンのテキストを「表示」に変更
+        const toggleBtn = document.getElementById('toggleCandidatesBtn');
+        if (toggleBtn) {
+          toggleBtn.innerHTML = '📋 候補を表示';
+          toggleBtn.onclick = () => toggleCandidatesList(true);
+          console.log('トグルボタンを「表示」状態に変更しました');
+        }
+        
+        alert(`プロジェクト「${project.displayName || project.name}」の情報をフォームに設定しました！\n\n詳細情報も分析済みです。必要に応じて「🔄 AI説明再生成」ボタンで説明文を改善できます。`);
+        
+      } catch (error) {
+        console.error('プロジェクトデータの解析エラー:', error);
+        alert('プロジェクトデータの読み込みでエラーが発生しました');
+      }
+    }
+
+    // AI説明生成
+    async function generateAIDescription(isAutoGeneration = false) {
+      const projectPath = document.getElementById('newProjectPath').value.trim();
+      const projectName = document.getElementById('newProjectName').value.trim();
+      
+      if (!projectPath) {
+        if (!isAutoGeneration) alert('プロジェクトディレクトリを先に選択してください');
+        return;
+      }
+      
+      if (!projectName) {
+        if (!isAutoGeneration) alert('プロジェクト名を入力してください');
+        return;
+      }
+      
+      // ローディング表示の準備
+      const descriptionArea = document.getElementById('newProjectDescription');
+      const loadingOverlay = document.getElementById('aiLoadingOverlay');
+      const loadingText = document.getElementById('aiLoadingText');
+      const regenerateBtn = document.getElementById('aiRegenerateBtn');
+      const originalPlaceholder = descriptionArea.placeholder;
+      
+      try {
+        // ローディング表示を開始
+        const loadingMessage = isAutoGeneration ? '🤖 AI説明を自動生成中...' : '🤖 AI説明を生成中...';
+        if (loadingText) loadingText.textContent = loadingMessage;
+        if (loadingOverlay) loadingOverlay.style.display = 'flex';
+        
+        // ボタンを無効化
+        if (regenerateBtn) {
+          regenerateBtn.disabled = true;
+          regenerateBtn.innerHTML = '<div class="loading-spinner"></div>生成中...';
+        }
+        
+        descriptionArea.disabled = true;
+        
+        let projectData = window.currentProjectData;
+        
+        // プロジェクトデータが無い場合は現在のフォーム情報を使用
+        if (!projectData) {
+          projectData = {
+            displayName: projectName,
+            name: projectName,
+            path: projectPath,
+            tech: document.getElementById('newProjectTech').value,
+            category: document.getElementById('newProjectCategory').value,
+            description: descriptionArea.value,
+            features: [],
+            codeFiles: [],
+            fileStructure: {}
+          };
+        }
+        
+        // AI説明生成を実行
+        const result = await window.electronAPI.invoke('generate-ai-description', projectData);
+        
+        if (result.success) {
+          descriptionArea.value = result.data;
+          if (!isAutoGeneration) {
+            alert('AI説明生成が完了しました！\n\n生成された説明文を確認して、必要に応じて編集してください。');
+          }
+        } else {
+          if (!isAutoGeneration) {
+            alert('AI説明生成に失敗しました: ' + result.error);
+          }
+          console.error('AI説明生成失敗:', result.error);
+        }
+        
+      } catch (error) {
+        console.error('AI説明生成エラー:', error);
+        if (!isAutoGeneration) {
+          alert('AI説明生成でエラーが発生しました');
+        }
+      } finally {
+        // ローディング解除
+        const descriptionArea = document.getElementById('newProjectDescription');
+        const loadingOverlay = document.getElementById('aiLoadingOverlay');
+        const regenerateBtn = document.getElementById('aiRegenerateBtn');
+        
+        descriptionArea.placeholder = originalPlaceholder;
+        descriptionArea.disabled = false;
+        
+        // ローディングオーバーレイを非表示
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        
+        // ボタンを復元
+        if (regenerateBtn) {
+          regenerateBtn.disabled = false;
+          regenerateBtn.innerHTML = '🔄 AI説明再生成';
+        }
+      }
+    }
+
+    // 個別プロジェクトディレクトリ選択
+    async function selectProjectDirectory() {
+      try {
+        // 現在のプロジェクトパスが設定されている場合は、そのディレクトリを初期パスとする
+        const currentPath = document.getElementById('newProjectPath').value.trim();
+        let defaultPath = null;
+        
+        if (currentPath) {
+          defaultPath = currentPath;
+          console.log('初期パスを設定:', defaultPath);
+        }
+        
+        const result = await window.electronAPI.invoke('select-directory', 'プロジェクトディレクトリを選択', defaultPath);
+        
+        if (result.success && !result.canceled) {
+          document.getElementById('newProjectPath').value = result.data;
+          
+          // ディレクトリからプロジェクト情報を自動抽出
+          await analyzeSelectedProject(result.data);
+        }
+      } catch (error) {
+        console.error('ディレクトリ選択エラー:', error);
+        alert('ディレクトリの選択に失敗しました');
+      }
+    }
+
+
+    // 選択されたプロジェクトを分析
+    async function analyzeSelectedProject(projectPath) {
+      try {
+        const projectName = projectPath.split('/').pop();
+        const result = await window.electronAPI.invoke('discover-projects', projectPath.substring(0, projectPath.lastIndexOf('/')));
+        
+        if (result.success) {
+          const project = result.data.find(p => p.path === projectPath);
+          if (project) {
+            document.getElementById('newProjectName').value = project.displayName || project.name;
+            document.getElementById('newProjectDescription').value = project.description;
+            document.getElementById('newProjectCategory').value = project.category;
+            document.getElementById('newProjectTech').value = project.tech;
+            
+            // プロジェクトデータを一時保存（AI生成用）
+            window.currentProjectData = project;
+            
+            // AI説明生成を自動実行
+            console.log('プロジェクト分析完了、AI説明生成を自動実行します');
+            await generateAIDescription(true); // 自動実行フラグを渡す
+          }
+        } else {
+          // プロジェクト分析に失敗した場合でも、基本情報でAI生成を試行
+          const basicProject = {
+            name: projectName,
+            displayName: projectName,
+            path: projectPath,
+            description: ''
+          };
+          
+          document.getElementById('newProjectName').value = projectName;
+          window.currentProjectData = basicProject;
+          
+          console.log('基本情報でAI説明生成を自動実行します');
+          await generateAIDescription(true);
+        }
+      } catch (error) {
+        console.error('プロジェクト分析エラー:', error);
+        // エラーが発生してもディレクトリ選択は有効
+      }
+    }
+
+    // プラットフォーム設定の表示/非表示切り替え
+    function togglePlatformSettings() {
+      const platform = document.getElementById('newProjectPlatform').value;
+      const twitterSettings = document.getElementById('twitterSettings');
+      
+      // 全ての設定セクションを非表示
+      twitterSettings.style.display = 'none';
+      
+      // 選択されたプラットフォームに応じて表示
+      if (platform === 'twitter') {
+        twitterSettings.style.display = 'block';
+      }
+      
+      console.log('プラットフォーム設定切り替え:', platform);
+    }
+
+    // プロジェクト登録/更新
+    function registerProject() {
+      const projectPath = document.getElementById('newProjectPath').value.trim();
+      const name = document.getElementById('newProjectName').value.trim();
+      const description = document.getElementById('newProjectDescription').value.trim();
+      const category = document.getElementById('newProjectCategory').value;
+      const tech = document.getElementById('newProjectTech').value.trim();
+      const frequency = document.getElementById('newProjectFrequency').value;
+      const time = document.getElementById('newProjectTime').value;
+      const duration = document.getElementById('newProjectDuration').value;
+      
+      // プラットフォームとTwitter API設定を取得
+      const platform = document.getElementById('newProjectPlatform').value;
+      const twitterApiKey = document.getElementById('newProjectTwitterApiKey').value.trim();
+      const twitterApiSecret = document.getElementById('newProjectTwitterApiSecret').value.trim();
+      const twitterAccessToken = document.getElementById('newProjectTwitterAccessToken').value.trim();
+      const twitterAccessTokenSecret = document.getElementById('newProjectTwitterAccessTokenSecret').value.trim();
+      
+      // バリデーション
+      if (!projectPath) {
+        alert('プロジェクトディレクトリは必須です。「📁 選択」ボタンからディレクトリを選択してください。');
+        return;
+      }
+      
+      if (!name || !description) {
+        alert('プロジェクト名、説明は必須項目です');
+        return;
+      }
+      
+      // 編集モードでない場合の重複チェック
+      if (!editingProjectId && registeredProjects.some(p => p.name === name)) {
+        alert('このプロジェクト名は既に登録されています');
+        return;
+      }
+      
+      // 編集モードで、別のプロジェクトと名前が重複する場合のチェック
+      if (editingProjectId && registeredProjects.some(p => p.name === name && p.id != editingProjectId)) {
+        alert('このプロジェクト名は既に他のプロジェクトで使用されています');
+        return;
+      }
+      
+      let project;
+      
+      if (editingProjectId) {
+        // 編集モード: 既存プロジェクトを更新
+        const existingProject = registeredProjects.find(p => p.id == editingProjectId);
+        if (existingProject) {
+          project = {
+            ...existingProject, // 既存データを保持
+            name: name,
+            displayName: name,
+            description: description,
+            path: projectPath,
+            category: category,
+            tech: tech,
+            frequency: frequency,
+            time: time,
+            duration: duration,
+            platform: platform,
+            twitterConfig: platform === 'twitter' ? {
+              apiKey: twitterApiKey,
+              apiSecret: twitterApiSecret,
+              accessToken: twitterAccessToken,
+              accessTokenSecret: twitterAccessTokenSecret,
+              enabled: !!(twitterApiKey && twitterApiSecret && twitterAccessToken && twitterAccessTokenSecret)
+            } : null,
+            updatedAt: new Date().toISOString() // 更新日時を追加
+          };
+          
+          // 既存プロジェクトを置き換え
+          const index = registeredProjects.findIndex(p => p.id == editingProjectId);
+          registeredProjects[index] = project;
+        }
+      } else {
+        // 新規登録モード
+        project = {
+          id: Date.now(),
+          name: name,
+          displayName: name,
+          description: description,
+          path: projectPath,
+          category: category,
+          tech: tech,
+          frequency: frequency,
+          time: time,
+          duration: duration,
+          platform: platform,
+          twitterConfig: platform === 'twitter' ? {
+            apiKey: twitterApiKey,
+            apiSecret: twitterApiSecret,
+            accessToken: twitterAccessToken,
+            accessTokenSecret: twitterAccessTokenSecret,
+            enabled: !!(twitterApiKey && twitterApiSecret && twitterAccessToken && twitterAccessTokenSecret)
+          } : null,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          lastPost: null,
+          totalPosts: 0
+        };
+        
+        // プロジェクトを追加
+        registeredProjects.push(project);
+      }
+      
+      // LocalStorageに保存
+      localStorage.setItem('registeredProjects', JSON.stringify(registeredProjects));
+      
+      // 編集モードをリセット
+      const isEditing = !!editingProjectId;
+      editingProjectId = null;
+      
+      // フォームリセット
+      resetProjectForm();
+      
+      // 一覧更新
+      updateProjectList();
+      
+      // ツイートのプロジェクト選択肢を更新
+      updateProjectSelect();
+      
+      // 登録ボタンを元に戻す
+      const registerBtn = document.querySelector('button[onclick="registerProject()"]');
+      if (registerBtn) {
+        registerBtn.innerHTML = '📝 プロジェクト登録';
+        registerBtn.style.background = '#007bff';
+      }
+      
+      const actionText = isEditing ? '更新' : '登録';
+      alert(`プロジェクト「${name}」を${actionText}しました！`);
+    }
+
+    // プロジェクトフォームリセット
+    function resetProjectForm() {
+      // 編集モードもリセット
+      editingProjectId = null;
+      
+      document.getElementById('newProjectPath').value = '';
+      document.getElementById('newProjectName').value = '';
+      document.getElementById('newProjectDescription').value = '';
+      document.getElementById('newProjectCategory').value = 'web';
+      document.getElementById('newProjectTech').value = '';
+      document.getElementById('newProjectFrequency').value = 'daily';
+      document.getElementById('newProjectTime').value = '10:00';
+      document.getElementById('newProjectDuration').value = '1month';
+      
+      // プラットフォーム設定もリセット
+      document.getElementById('newProjectPlatform').value = '';
+      document.getElementById('newProjectTwitterApiKey').value = '';
+      document.getElementById('newProjectTwitterApiSecret').value = '';
+      document.getElementById('newProjectTwitterAccessToken').value = '';
+      document.getElementById('newProjectTwitterAccessTokenSecret').value = '';
+      
+      // Twitter設定を非表示
+      document.getElementById('twitterSettings').style.display = 'none';
+      
+      // 登録ボタンを元に戻す
+      const registerBtn = document.querySelector('button[onclick="registerProject()"]');
+      if (registerBtn) {
+        registerBtn.innerHTML = '📝 プロジェクト登録';
+        registerBtn.style.background = '#007bff';
+      }
+      
+      // 編集中の視覚的フィードバックを削除
+      const projectCards = document.querySelectorAll('.project-card');
+      projectCards.forEach(card => card.classList.remove('editing'));
+    }
+
+    // プロジェクト一覧更新
+    function updateProjectList() {
+      const projectList = document.getElementById('projectList');
+      
+      if (registeredProjects.length === 0) {
+        projectList.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #657786; background: #f7f9fc; border-radius: 12px;">
+            <p style="font-size: 16px; margin-bottom: 10px;">📝 まだプロジェクトが登録されていません</p>
+            <p style="font-size: 14px;">上記のフォームから新規プロジェクトを登録してみましょう！</p>
+          </div>
+        `;
+        return;
+      }
+      
+      projectList.innerHTML = registeredProjects.map(project => {
+        const frequencyText = {
+          'daily': '毎日',
+          'every2days': '2日に1回',
+          'weekly': '週1回',
+          'biweekly': '2週間に1回',
+          'monthly': '月1回'
+        };
+        
+        const durationText = {
+          '1month': '1ヶ月間',
+          '3months': '3ヶ月間',
+          '6months': '6ヶ月間',
+          '1year': '1年間',
+          'unlimited': '無制限'
+        };
+        
+        const statusText = {
+          'active': '稼働中',
+          'paused': '一時停止',
+          'completed': '完了'
+        };
+        
+        const categoryEmojis = {
+          'web': '🌐',
+          'mobile': '📱',
+          'desktop': '💻',
+          'tool': '🔧',
+          'game': '🎮',
+          'other': '📦'
+        };
+        
+        return `
+          <div class="project-card" data-project-id="${project.id}">
+            <div class="project-header">
+              <div>
+                <div class="project-title">${project.displayName}</div>
+                <div class="project-name">${project.name}</div>
+              </div>
+              <div class="project-actions">
+                <button class="btn btn-secondary" onclick="toggleProjectStatus('${project.id}')">
+                  ${project.status === 'active' ? '⏸️ 停止' : '▶️ 再開'}
+                </button>
+                <button class="btn btn-secondary" onclick="editProject('${project.id}')">✏️ 編集</button>
+                <button class="btn btn-secondary" onclick="deleteProject('${project.id}')">🗑️ 削除</button>
+              </div>
+            </div>
+            
+            <div class="project-info">
+              <div class="project-description">${project.description}</div>
+              <div class="project-meta">
+                <span>${categoryEmojis[project.category]} ${project.category.toUpperCase()}</span>
+                <span>🔧 ${project.tech || '未設定'}</span>
+                <span>📊 投稿数: ${project.totalPosts}回</span>
+                <span>📅 登録: ${new Date(project.createdAt).toLocaleDateString('ja-JP')}</span>
+                ${project.platform ? `<span>🚀 ${project.platform.toUpperCase()}</span>` : ''}
+                ${project.twitterConfig && project.twitterConfig.enabled ? '<span>✅ Twitter API設定済み</span>' : project.platform === 'twitter' ? '<span>⚠️ Twitter API未設定</span>' : ''}
+              </div>
+            </div>
+            
+            <div class="project-schedule">
+              <h4>📅 自動投稿スケジュール <span class="schedule-status status-${project.status}">${statusText[project.status]}</span></h4>
+              <div class="schedule-info">
+                <span>🔄 ${frequencyText[project.frequency]}</span>
+                <span>⏰ ${project.time}</span>
+                <span>📆 ${durationText[project.duration]}</span>
+                ${project.lastPost ? `<span>📝 最終投稿: ${new Date(project.lastPost).toLocaleDateString('ja-JP')}</span>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // プロジェクト選択肢を更新
+    function updateProjectSelect() {
+      const projectSelect = document.getElementById('projectSelect');
+      const currentValue = projectSelect.value;
+      
+      // 既存の登録プロジェクト選択肢をクリア
+      const options = projectSelect.querySelectorAll('option');
+      options.forEach(option => {
+        if (!['', 'shuumy', 'chokushii', 'genshin-hensei', 'general'].includes(option.value)) {
+          option.remove();
+        }
+      });
+      
+      // 新しい選択肢を追加
+      registeredProjects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.name;
+        option.textContent = `${project.displayName} (${project.name})`;
+        projectSelect.appendChild(option);
+      });
+      
+      // 元の値を復元
+      projectSelect.value = currentValue;
+    }
+
+    // プロジェクト状態切り替え
+    function toggleProjectStatus(projectId) {
+      const project = registeredProjects.find(p => p.id == projectId);
+      if (!project) return;
+      
+      project.status = project.status === 'active' ? 'paused' : 'active';
+      
+      // LocalStorageに保存
+      localStorage.setItem('registeredProjects', JSON.stringify(registeredProjects));
+      
+      // 一覧更新
+      updateProjectList();
+      
+      const statusText = project.status === 'active' ? '再開' : '一時停止';
+      alert(`プロジェクト「${project.displayName}」を${statusText}しました`);
+    }
+
+    // 編集中のプロジェクトIDを保持
+    let editingProjectId = null;
+
+    // プロジェクト編集
+    function editProject(projectId) {
+      const project = registeredProjects.find(p => p.id == projectId);
+      if (!project) return;
+      
+      // 編集モードに設定
+      editingProjectId = projectId;
+      
+      // フォームに既存データを設定
+      document.getElementById('newProjectPath').value = project.path || '';
+      document.getElementById('newProjectName').value = project.displayName || project.name;
+      document.getElementById('newProjectDescription').value = project.description;
+      document.getElementById('newProjectCategory').value = project.category || 'web';
+      document.getElementById('newProjectTech').value = project.tech || '';
+      document.getElementById('newProjectFrequency').value = project.frequency || 'daily';
+      document.getElementById('newProjectTime').value = project.time || '10:00';
+      document.getElementById('newProjectDuration').value = project.duration || '1month';
+      
+      // プラットフォーム設定を復元
+      document.getElementById('newProjectPlatform').value = project.platform || '';
+      if (project.twitterConfig) {
+        document.getElementById('newProjectTwitterApiKey').value = project.twitterConfig.apiKey || '';
+        document.getElementById('newProjectTwitterApiSecret').value = project.twitterConfig.apiSecret || '';
+        document.getElementById('newProjectTwitterAccessToken').value = project.twitterConfig.accessToken || '';
+        document.getElementById('newProjectTwitterAccessTokenSecret').value = project.twitterConfig.accessTokenSecret || '';
+      }
+      
+      // プラットフォーム設定UIを更新
+      togglePlatformSettings();
+      
+      // 登録ボタンのテキストを変更
+      const registerBtn = document.querySelector('button[onclick="registerProject()"]');
+      if (registerBtn) {
+        registerBtn.innerHTML = '📝 プロジェクト更新';
+        registerBtn.style.background = '#28a745';
+      }
+      
+      // 編集中の視覚的フィードバック
+      const projectCards = document.querySelectorAll('.project-card');
+      projectCards.forEach(card => card.classList.remove('editing'));
+      
+      const editingCard = document.querySelector(`[data-project-id="${projectId}"]`);
+      if (editingCard) {
+        editingCard.classList.add('editing');
+      }
+      
+      alert(`プロジェクト「${project.displayName}」を編集モードにしました。\n変更後に「プロジェクト更新」ボタンを押してください。`);
+    }
+
+    // プロジェクト削除
+    function deleteProject(projectId) {
+      const project = registeredProjects.find(p => p.id == projectId);
+      if (!project) return;
+      
+      if (!confirm(`プロジェクト「${project.displayName}」を削除しますか？\n\nこの操作は取り消せません。`)) {
+        return;
+      }
+      
+      // プロジェクトを削除
+      registeredProjects = registeredProjects.filter(p => p.id != projectId);
+      
+      // LocalStorageに保存
+      localStorage.setItem('registeredProjects', JSON.stringify(registeredProjects));
+      
+      // 一覧更新
+      updateProjectList();
+      updateProjectSelect();
+      
+      alert(`プロジェクト「${project.displayName}」を削除しました`);
+    }
+
+    // Ollama健康チェック
+    async function checkOllamaHealth() {
+      try {
+        const result = await window.electronAPI.invoke('ollama-health-check');
+        if (result.success && result.data) {
+          addAIMessage('✅ Ollama AIサービスが正常に動作しています！プロジェクト分析とAI相談機能が利用可能です。');
+        } else {
+          addAIMessage('⚠️ Ollama AIサービスに接続できませんでした。基本機能は利用できますが、AI機能は制限されます。');
+        }
+      } catch (error) {
+        console.error('Ollama健康チェックエラー:', error);
+        addAIMessage('❌ AI機能の初期化でエラーが発生しました。フォールバック機能を使用します。');
+      }
+    }
+
+    console.log('🔧 DOMContentLoadedイベントリスナー登録中...');
+
+    // 初期化
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('🚀🚀🚀 DOMContentLoaded イベント発火！');
+      console.log('広告配信プラットフォーム - Twitter機能初期化開始！');
+      
+      // DOM要素の存在確認
+      const testElements = [
+        'tweet-tab', 'ai-tab', 'projects-tab', 'settings-tab', 'test-tab',
+        'project-section', 'tweet-section'
+      ];
+      
+      testElements.forEach(id => {
+        const element = document.getElementById(id);
+        console.log(`要素確認 ${id}:`, !!element);
+      });
+      
+      // 関数の存在確認
+      console.log('=== 関数存在確認 ===');
+      console.log('showTab:', typeof showTab, showTab);
+      console.log('testFunction:', typeof testFunction, testFunction);
+      
+      // グローバルに再登録
+      window.showTab = showTab;
+      window.testFunction = testFunction;
+      
+      // 全タブにイベントリスナーを追加
+      const tabs = [
+        { id: 'tweet-tab', target: 'tweet' },
+        { id: 'ai-tab', target: 'ai' },
+        { id: 'projects-tab', target: 'projects' },
+        { id: 'firebase-tab', target: 'firebase' },
+        { id: 'twitter-tab', target: 'twitter' },
+        { id: 'google-ads-tab', target: 'google-ads' },
+        { id: 'youtube-tab', target: 'youtube' },
+        { id: 'multi-auth-tab', target: 'multi-auth' },
+        { id: 'settings-tab', target: 'settings' },
+        { id: 'test-tab', target: 'test' }
+      ];
+      
+      tabs.forEach(tab => {
+        const element = document.getElementById(tab.id);
+        if (element) {
+          element.addEventListener('click', function(e) {
+            console.log(`${tab.target}タブクリック検出`);
+            e.preventDefault();
+            
+            if (tab.target === 'test') {
+              testFunction();
+            } else {
+              showTab(tab.target);
+            }
+          });
+          console.log(`${tab.id}にイベントリスナー追加完了`);
+        } else {
+          console.error(`${tab.id}要素が見つかりません`);
+        }
+      });
+      
+      // イベントリスナー初期化
+      initCharCount();
+      initScheduleToggle();
+      
+      // 下書きの復元
+      const draft = localStorage.getItem('tweetDraft');
+      if (draft) {
+        document.getElementById('tweetText').value = draft;
+        updatePreview();
+      }
+      
+      // プロジェクトデータの復元
+      const savedProjects = localStorage.getItem('registeredProjects');
+      if (savedProjects) {
+        registeredProjects = JSON.parse(savedProjects);
+        updateProjectSelect();
+      }
+      
+      // 一元管理ディレクトリの復元
+      const savedCentralDirectory = localStorage.getItem('centralDirectory');
+      if (savedCentralDirectory) {
+        document.getElementById('centralDirectory').value = savedCentralDirectory;
+        currentCentralDirectory = savedCentralDirectory;
+        
+        // トグルボタンを表示
+        const toggleBtn = document.getElementById('toggleCandidatesBtn');
+        if (toggleBtn) {
+          toggleBtn.style.display = 'inline-block';
+          toggleBtn.innerHTML = '📋 候補を表示';
+          toggleBtn.onclick = () => toggleCandidatesList(true);
+        }
+        
+        console.log('保存されたディレクトリを復元:', savedCentralDirectory);
+      }
+      
+      // サンプル履歴データ
+      tweetHistory = [
+        {
+          id: 1,
+          text: 'shuumyアプリ、カレンダー表示を大幅改善！視認性が劇的にアップしました 📅✨',
+          timestamp: '2025-07-29T14:30:00',
+          status: 'scheduled'
+        },
+        {
+          id: 2,
+          text: 'chokushiiの新機能開発中。AIチャット機能でより良い内省体験を 🤖💭',
+          timestamp: '2025-07-28T10:15:00',
+          status: 'posted'
+        }
+      ];
+      updateTweetHistory();
+      
+      // Ollama AI健康チェック（非同期で実行）
+      setTimeout(checkOllamaHealth, 1000);
+      
+      // Firebase フロントエンド初期化
+      setTimeout(() => {
+        if (typeof firebaseFrontend !== 'undefined') {
+          firebaseFrontend.initialize();
+        }
+      }, 1500);
+    });
+
+    // ==========================================
+    // Firebase 関連関数
+    // ==========================================
+
+    /**
+     * Firebase UI初期化
+     */
+    function initializeFirebaseUI() {
+      console.log('🔥 Firebase UI 初期化');
+      
+      // 接続状況チェック
+      checkFirebaseConnection();
+    }
+
+    /**
+     * Firebase 接続確認
+     */
+    async function checkFirebaseConnection() {
+      const statusElement = document.getElementById('firebaseConnectionStatus');
+      
+      if (statusElement) {
+        statusElement.innerHTML = '<span class="firebase-status-checking">⏳ 接続確認中...</span>';
+      }
+      
+      try {
+        const result = await window.electronAPI.invoke('firebase-check-connection');
+        
+        if (result.success) {
+          if (statusElement) {
+            statusElement.innerHTML = '<span class="firebase-status-connected">✅ 接続成功</span>';
+          }
+          console.log('✅ Firebase 接続確認成功');
+        } else {
+          throw new Error(result.error);
+        }
+        
+      } catch (error) {
+        console.error('❌ Firebase 接続確認失敗:', error);
+        if (statusElement) {
+          statusElement.innerHTML = '<span class="firebase-status-disconnected">❌ 接続失敗</span>';
+        }
+      }
+    }
+
+    /**
+     * Firebase ログイン
+     */
+    async function firebaseLogin() {
+      const email = document.getElementById('firebaseEmail').value.trim();
+      const password = document.getElementById('firebasePassword').value.trim();
+      
+      if (!email || !password) {
+        alert('メールアドレスとパスワードを入力してください');
+        return;
+      }
+      
+      try {
+        const result = await firebaseFrontend.signInWithEmail(email, password);
+        
+        if (result.success) {
+          // ログイン成功時はfirebaseFrontend内で処理される
+          console.log('✅ ログイン成功');
+          
+          // フォームをクリア
+          document.getElementById('firebaseEmail').value = '';
+          document.getElementById('firebasePassword').value = '';
+          
+          // Firebase機能を表示
+          showFirebaseFunctions();
+        }
+        
+      } catch (error) {
+        console.error('❌ ログインエラー:', error);
+        alert('ログインでエラーが発生しました: ' + error.message);
+      }
+    }
+
+    /**
+     * Firebase アカウント作成
+     */
+    async function firebaseCreateAccount() {
+      const email = document.getElementById('firebaseEmail').value.trim();
+      const password = document.getElementById('firebasePassword').value.trim();
+      
+      if (!email || !password) {
+        alert('メールアドレスとパスワードを入力してください');
+        return;
+      }
+      
+      if (password.length < 6) {
+        alert('パスワードは6文字以上で入力してください');
+        return;
+      }
+      
+      try {
+        const result = await firebaseFrontend.createAccount(email, password);
+        
+        if (result.success) {
+          // アカウント作成成功時はfirebaseFrontend内で処理される
+          console.log('✅ アカウント作成成功');
+          
+          // フォームをクリア
+          document.getElementById('firebaseEmail').value = '';
+          document.getElementById('firebasePassword').value = '';
+          
+          // Firebase機能を表示
+          showFirebaseFunctions();
+        }
+        
+      } catch (error) {
+        console.error('❌ アカウント作成エラー:', error);
+        alert('アカウント作成でエラーが発生しました: ' + error.message);
+      }
+    }
+
+    /**
+     * Google ログイン
+     */
+    async function firebaseGoogleLogin() {
+      try {
+        const result = await firebaseFrontend.signInWithGoogle();
+        
+        if (result.success) {
+          console.log('✅ Google ログイン成功');
+          showFirebaseFunctions();
+        }
+        
+      } catch (error) {
+        console.error('❌ Google ログインエラー:', error);
+        alert('Google ログインでエラーが発生しました: ' + error.message);
+      }
+    }
+
+    /**
+     * Firebase機能を表示
+     */
+    function showFirebaseFunctions() {
+      const loginSection = document.getElementById('firebaseLoginSection');
+      const functionsSection = document.getElementById('firebaseFunctions');
+      
+      if (loginSection) loginSection.style.display = 'none';
+      if (functionsSection) functionsSection.style.display = 'block';
+    }
+
+    /**
+     * 全プロジェクトをFirebaseに同期
+     */
+    async function syncAllProjectsToFirebase() {
+      if (!firebaseFrontend.isLoggedIn) {
+        alert('Firebaseにログインしてください');
+        return;
+      }
+      
+      try {
+        console.log('🔄 全プロジェクト同期開始');
+        
+        let syncCount = 0;
+        const results = [];
+        
+        for (const project of registeredProjects) {
+          try {
+            const result = await firebaseFrontend.syncProject('create', project);
+            
+            if (result.success) {
+              syncCount++;
+              results.push({ project: project.name, success: true });
+              console.log(`✅ ${project.name} 同期成功`);
+            } else {
+              results.push({ project: project.name, success: false, error: result.error });
+              console.error(`❌ ${project.name} 同期失敗:`, result.error);
+            }
+            
+          } catch (error) {
+            results.push({ project: project.name, success: false, error: error.message });
+            console.error(`❌ ${project.name} 同期エラー:`, error);
+          }
+          
+          // API制限を考慮して少し待機
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        const message = `${syncCount}/${registeredProjects.length} 件のプロジェクトを同期しました`;
+        alert(message);
+        addAIMessage(`🔄 Firebase同期完了: ${message}`);
+        
+      } catch (error) {
+        console.error('❌ プロジェクト同期エラー:', error);
+        alert('プロジェクト同期でエラーが発生しました: ' + error.message);
+      }
+    }
+
+    /**
+     * Firebase 投稿履歴を表示
+     */
+    async function showFirebaseHistory() {
+      if (!firebaseFrontend.isLoggedIn) {
+        alert('Firebaseにログインしてください');
+        return;
+      }
+      
+      // 簡単な実装: 最初のプロジェクトの履歴を表示
+      if (registeredProjects.length === 0) {
+        alert('プロジェクトが登録されていません');
+        return;
+      }
+      
+      try {
+        // 仮のプロジェクトIDで履歴取得を試行
+        alert('投稿履歴機能は近日実装予定です');
+        
+      } catch (error) {
+        console.error('❌ 履歴取得エラー:', error);
+        alert('履歴取得でエラーが発生しました: ' + error.message);
+      }
+    }
+
+    /**
+     * スケジュール設定を表示
+     */
+    async function showScheduleSettings() {
+      if (!firebaseFrontend.isLoggedIn) {
+        alert('Firebaseにログインしてください');
+        return;
+      }
+      
+      alert('スケジュール設定機能は近日実装予定です\n\n現在は Firebase Functions で自動的に:\n• 毎晩23:00 - AI投稿生成\n• 毎朝10:00 - 自動投稿実行\nが設定されています');
+    }
+
+    // ==========================================
+    // Twitter API関連の関数
+    // ==========================================
+
+    /**
+     * Twitter UIを初期化
+     */
+    async function initializeTwitterUI() {
+      try {
+        console.log('🐦 Twitter UI初期化開始');
+        await twitterFrontend.initialize();
+        console.log('✅ Twitter UI初期化完了');
+      } catch (error) {
+        console.error('❌ Twitter UI初期化エラー:', error);
+      }
+    }
+
+    /**
+     * Twitter認証情報を保存
+     */
+    async function saveTwitterCredentials() {
+      try {
+        const apiKey = document.getElementById('twitterApiKey').value.trim();
+        const apiSecret = document.getElementById('twitterApiSecret').value.trim();
+        const accessToken = document.getElementById('twitterAccessToken').value.trim();
+        const accessTokenSecret = document.getElementById('twitterAccessTokenSecret').value.trim();
+
+        if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) {
+          alert('❌ すべての認証情報を入力してください');
+          return;
+        }
+
+        const credentials = {
+          apiKey,
+          apiSecret,
+          accessToken,
+          accessTokenSecret
+        };
+
+        const result = await twitterFrontend.setCredentials(credentials);
+        
+        if (result.success) {
+          // 入力フィールドをクリア（セキュリティのため）
+          document.getElementById('twitterApiKey').value = '';
+          document.getElementById('twitterApiSecret').value = '';
+          document.getElementById('twitterAccessToken').value = '';
+          document.getElementById('twitterAccessTokenSecret').value = '';
+        }
+
+      } catch (error) {
+        console.error('❌ Twitter認証情報保存エラー:', error);
+        alert(`❌ エラーが発生しました: ${error.message}`);
+      }
+    }
+
+    /**
+     * Twitter接続テスト
+     */
+    async function testTwitterConnection() {
+      try {
+        console.log('🔌 Twitter接続テスト開始');
+        await twitterFrontend.testConnection();
+      } catch (error) {
+        console.error('❌ Twitter接続テストエラー:', error);
+        alert(`❌ 接続テストエラー: ${error.message}`);
+      }
+    }
+
+    /**
+     * Twitter認証情報をクリア
+     */
+    async function clearTwitterCredentials() {
+      try {
+        console.log('🗑️ Twitter認証情報クリア開始');
+        await twitterFrontend.clearCredentials();
+      } catch (error) {
+        console.error('❌ Twitter認証情報クリアエラー:', error);
+        alert(`❌ クリアエラー: ${error.message}`);
+      }
+    }
+
+    /**
+     * テスト投稿の文字数カウンター更新
+     */
+    function updateTestTweetCharCount() {
+      const textarea = document.getElementById('testTweetText');
+      const counter = document.getElementById('testTweetCharCount');
+      const postBtn = document.getElementById('testTweetBtn');
+      
+      if (textarea && counter) {
+        const length = textarea.value.length;
+        const remaining = 280 - length;
+        
+        counter.textContent = `${length} / 280`;
+        
+        // 文字数に応じて色を変更
+        if (length > 280) {
+          counter.style.color = '#e0245e'; // 赤色
+          if (postBtn) postBtn.disabled = true;
+        } else if (length > 260) {
+          counter.style.color = '#ffad1f'; // 黄色
+          if (postBtn && twitterFrontend.isConfigured) postBtn.disabled = false;
+        } else {
+          counter.style.color = '#657786'; // グレー
+          if (postBtn && twitterFrontend.isConfigured) postBtn.disabled = false;
+        }
+      }
+    }
+
+    /**
+     * テスト投稿を送信
+     */
+    async function postTestTweet() {
+      try {
+        const tweetText = document.getElementById('testTweetText').value.trim();
+        
+        if (!tweetText) {
+          alert('❌ 投稿内容を入力してください');
+          return;
+        }
+
+        if (tweetText.length > 280) {
+          alert(`❌ ツイートが280文字を超えています（現在: ${tweetText.length}文字）`);
+          return;
+        }
+
+        if (!confirm(`以下の内容を投稿しますか？\n\n「${tweetText}」`)) {
+          return;
+        }
+
+        console.log('📤 テスト投稿送信開始');
+        const result = await twitterFrontend.postTweet(tweetText);
+        
+        if (result.success) {
+          // テスト投稿フォームをクリア
+          document.getElementById('testTweetText').value = '';
+          updateTestTweetCharCount();
+        }
+
+      } catch (error) {
+        console.error('❌ テスト投稿エラー:', error);
+        alert(`❌ 投稿エラー: ${error.message}`);
+      }
+    }
+
+    /**
+     * 既存のツイートフォームにTwitter投稿機能を統合
+     */
+    async function postToTwitter(tweetText) {
+      try {
+        if (!twitterFrontend.isConfigured) {
+          alert('❌ Twitter API認証情報が設定されていません。\n「🐦 Twitter API」タブで設定してください。');
+          return;
+        }
+
+        console.log('📤 Twitter投稿開始');
+        const result = await twitterFrontend.postTweet(tweetText);
+        
+        return result;
+
+      } catch (error) {
+        console.error('❌ Twitter投稿エラー:', error);
+        throw error;
+      }
+    }
+
+    // グローバルに関数を公開
+    window.initializeTwitterUI = initializeTwitterUI;
+    window.saveTwitterCredentials = saveTwitterCredentials;
+    window.testTwitterConnection = testTwitterConnection;
+    window.clearTwitterCredentials = clearTwitterCredentials;
+    window.updateTestTweetCharCount = updateTestTweetCharCount;
+    window.postTestTweet = postTestTweet;
+    window.postToTwitter = postToTwitter;
+
+  </script>
+</body>
+</html>

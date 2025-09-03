@@ -1,0 +1,64 @@
+      <div id="project-detail-content">
+        <!-- プロジェクト基本情報 -->
+        <div class="detail-section" style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <h3 style="margin: 0 0 15px 0; color: #1da1f2;">📋 プロジェクト情報</h3>
+          <div id="project-basic-info">
+            <div class="loading" style="text-align: center; padding: 20px;">読み込み中...</div>
+          </div>
+        </div>
+
+        <!-- プラン一覧 -->
+        <div class="detail-section" style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #1da1f2;">📅 プラン一覧</h3>
+            <button class="btn btn-primary" onclick="createNewPlan()" style="font-size: 14px;">
+              ➕ 新規プラン作成
+            </button>
+          </div>
+          <div id="project-plans-list">
+            <!-- プラン一覧がここに表示される -->
+            <div style="text-align: center; color: #657786; padding: 40px;">
+              <div style="font-size: 18px; margin-bottom: 10px;">📋</div>
+              <div>プランがまだ作成されていません</div>
+              <div style="font-size: 14px; margin-top: 5px;">「新規プラン作成」ボタンからプランを作成してください</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 投稿予約一覧 -->
+        <div class="detail-section" style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #1da1f2;">⏰ 投稿予約一覧</h3>
+            <button class="btn btn-success" onclick="createManualPost()" style="font-size: 14px;">
+              ✍️ 手動投稿作成
+            </button>
+          </div>
+          <div id="project-posts-list">
+            <!-- 投稿予約一覧がここに表示される -->
+            <div style="text-align: center; color: #657786; padding: 40px;">
+              <div style="font-size: 18px; margin-bottom: 10px;">⏰</div>
+              <div>予約投稿がまだありません</div>
+              <div style="font-size: 14px; margin-top: 5px;">プランを作成するか手動投稿で投稿を予約してください</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- アクション -->
+        <div class="detail-section" style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 20px;">
+          <h3 style="margin: 0 0 15px 0; color: #1da1f2;">⚡ アクション</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <button class="btn btn-primary" onclick="generateAITweet()" style="width: 100%;">
+              🤖 AI投稿生成
+            </button>
+            <button class="btn btn-success" onclick="openProjectDirectory()" style="width: 100%;">
+              📁 ディレクトリを開く
+            </button>
+            <button class="btn btn-secondary" onclick="editProjectDetail()" style="width: 100%;">
+              ✏️ プロジェクト編集
+            </button>
+            <button class="btn btn-danger" onclick="deleteProjectFromDetail()" style="width: 100%;">
+              🗑️ プロジェクト削除
+            </button>
+          </div>
+        </div>
+      </div>
