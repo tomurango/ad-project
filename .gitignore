@@ -64,6 +64,13 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.*
+!.env.example
+
+# API Keys and sensitive configuration
+config/firebase-config-prod.js
+*.key
+*.pem
 
 # dataconnect generated files
 .dataconnect
