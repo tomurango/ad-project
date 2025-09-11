@@ -324,18 +324,35 @@ function shouldGeneratePost(planData, currentTime, isManualExecution = false) {
  */
 async function generateAutoPost(userId, projectId, projectData, planId, planData) {
   try {
-    // AI投稿内容を生成
-    const content = await generateAIContent(projectData, planData);
+    // AI投稿内容を生成（改良版）
+    const content = await generateAIContent(projectData, planData, userId, projectId, planId);
     
-    // 投稿日時を計算（3日後のプラン設定時刻）
+    // 投稿日時を計算（3日後のプラン設定時刻）- JST対応
     const scheduleTime = planData.schedule?.time || '10:00';
     const [scheduleHour, scheduleMinute] = scheduleTime.split(':').map(Number);
     
-    const scheduledAt = new Date();
-    scheduledAt.setDate(scheduledAt.getDate() + 3); // 3日後
-    scheduledAt.setHours(scheduleHour, scheduleMinute, 0, 0); // プラン設定時刻
+    // 日本時間（JST）で3日後の日付を計算
+    const now = new Date();
+    const jstOffset = 9 * 60; // JST = UTC+9時間（分換算）
+    const nowJST = new Date(now.getTime() + jstOffset * 60 * 1000);
     
-    console.log(`📅 投稿予定: ${scheduledAt.toISOString()} (3日後の${scheduleTime})`);
+    // 3日後のJST日付を計算
+    const targetDateJST = new Date(nowJST);
+    targetDateJST.setDate(targetDateJST.getDate() + 3);
+    
+    // 指定時刻を設定（JST）
+    targetDateJST.setHours(scheduleHour, scheduleMinute, 0, 0);
+    
+    // UTCに変換してISO文字列で保存
+    const scheduledAt = new Date(targetDateJST.getTime() - jstOffset * 60 * 1000);
+    
+    // デバッグ用ログ出力
+    console.log(`🕐 プラン設定時刻: ${scheduleTime}`);
+    console.log(`🌏 現在のUTC時刻: ${now.toISOString()}`);
+    console.log(`🇯🇵 現在のJST時刻: ${nowJST.toISOString()}`);
+    console.log(`📅 3日後のJST日時: ${targetDateJST.toISOString()}`);
+    console.log(`📅 最終的な投稿予定時刻(UTC): ${scheduledAt.toISOString()}`);
+    console.log(`📅 投稿予定時刻(JST表示): ${new Date(scheduledAt.getTime() + jstOffset * 60 * 1000).toISOString()}`);
     
     // 投稿データを作成
     const postData = {
@@ -380,29 +397,61 @@ async function generateAutoPost(userId, projectId, projectData, planId, planData
 }
 
 /**
- * AI投稿内容を生成
+ * 過去の投稿履歴を取得
  */
-async function generateAIContent(projectData, planData, postData = null) {
+async function getRecentPosts(userId, projectId, planId, limit = 5) {
+  try {
+    const postsSnapshot = await db
+      .collection('users')
+      .doc(userId)
+      .collection('projects')
+      .doc(projectId)
+      .collection('plans')
+      .doc(planId)
+      .collection('posts')
+      .orderBy('createdAt', 'desc')
+      .limit(limit)
+      .get();
+
+    if (postsSnapshot.empty) {
+      return [];
+    }
+
+    const posts = postsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      content: doc.data().content,
+      createdAt: doc.data().createdAt,
+      platform: doc.data().platform
+    }));
+
+    console.log(`📋 過去の投稿履歴: ${posts.length}件を取得`);
+    return posts;
+
+  } catch (error) {
+    console.error('❌ 過去投稿取得エラー:', error);
+    return [];
+  }
+}
+
+/**
+ * 改良版AI投稿内容を生成（重複回避・バリエーション対応）
+ */
+async function generateAIContent(projectData, planData, userId, projectId, planId) {
   try {
     const aiServiceManager = require('./ai-service-manager');
     
-    // Plan.customPromptがある場合は優先使用
-    let prompt;
-    if (planData.customPrompt) {
-      console.log('🎯 Cloud Functions: Plan.customPromptを使用');
-      prompt = planData.customPrompt;
-    } else {
-      // デフォルトプロンプトを生成
-      prompt = `${projectData.name}プロジェクトについて、${planData.platform}向けの投稿を作成してください。
-プロジェクト概要: ${planData.description || projectData.description || 'ソフトウェア開発プロジェクト'}
-トーン: ${planData.tone || '親しみやすく、専門的'}
-文字数: ${planData.platform === 'twitter' ? '280文字以内' : '200文字程度'}
-ハッシュタグも含めてください。`;
-    }
+    // 過去の投稿履歴を取得
+    const recentPosts = await getRecentPosts(userId, projectId, planId, 5);
+    
+    // プロンプトを構築
+    let prompt = buildEnhancedPrompt(projectData, planData, recentPosts);
+    
+    console.log('🎯 強化されたプロンプトを使用');
+    console.log('📜 過去投稿数:', recentPosts.length);
 
     const result = await aiServiceManager.generateText(prompt, {
-      maxTokens: 300,
-      temperature: 0.7
+      maxTokens: 400,
+      temperature: 0.8 // 少し高めでバリエーション促進
     });
 
     if (result.success) {
@@ -416,6 +465,72 @@ async function generateAIContent(projectData, planData, postData = null) {
     console.error('❌ AI投稿生成エラー:', error);
     return generateFallbackContent(projectData, planData);
   }
+}
+
+/**
+ * 強化されたプロンプトを構築（重複回避・バリエーション対応）
+ */
+function buildEnhancedPrompt(projectData, planData, recentPosts) {
+  let prompt = '';
+
+  // カスタムプロンプトがある場合はベースとして使用
+  if (planData.customPrompt) {
+    prompt += planData.customPrompt + '\n\n';
+  } else {
+    // デフォルトプロンプト
+    prompt += `${projectData.name}プロジェクトについて、${planData.platform}向けの投稿を作成してください。
+プロジェクト概要: ${planData.description || projectData.description || 'ソフトウェア開発プロジェクト'}
+トーン: ${planData.tone || '親しみやすく、専門的'}
+文字数: ${planData.platform === 'twitter' ? '280文字以内' : '200文字程度'}
+
+`;
+  }
+
+  // 重複回避指示を追加
+  if (recentPosts.length > 0) {
+    prompt += `【重要: 過去投稿との重複回避】
+以下は過去の投稿履歴です。これらとは異なる角度や表現で、新鮮で魅力的な投稿を作成してください：
+
+`;
+    
+    recentPosts.forEach((post, index) => {
+      // 投稿内容の最初の100文字を表示
+      const preview = post.content.length > 100 
+        ? post.content.substring(0, 100) + '...'
+        : post.content;
+      prompt += `${index + 1}. ${preview}\n`;
+    });
+
+    prompt += `
+【バリエーション指示】
+- 上記の投稿とは異なる切り口でアプローチしてください
+- 同じキーワードや表現の繰り返しを避けてください  
+- 新しい視点や価値を提供してください
+- ユーザーにとって価値のある異なる情報を含めてください
+
+`;
+  }
+
+  // 投稿スタイルのバリエーション指示
+  const styleVariations = [
+    '開発進捗を報告するスタイル',
+    'ユーザー価値にフォーカスしたスタイル', 
+    '技術的な学びを共有するスタイル',
+    'プロジェクトの背景や想いを伝えるスタイル',
+    '未来への展望を語るスタイル'
+  ];
+  
+  const randomStyle = styleVariations[Math.floor(Math.random() * styleVariations.length)];
+  prompt += `【今回のスタイル】: ${randomStyle}\n\n`;
+
+  // プラットフォーム別の最終指示
+  if (planData.platform === 'twitter') {
+    prompt += 'ハッシュタグも含めて280文字以内で作成してください。';
+  } else {
+    prompt += 'ハッシュタグも含めてください。';
+  }
+
+  return prompt;
 }
 
 /**
