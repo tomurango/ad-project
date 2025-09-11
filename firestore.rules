@@ -2,10 +2,66 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 🚧 開発用: 認証済みユーザーまたはCloud Functions（管理者権限）のみ全データ読み書き許可
+    
+    // ユーザー基本情報 - 本人のみアクセス可能（Cloud Functions管理者権限も許可）
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Cloud Functions管理者権限でのアクセスを許可
+      allow read, write: if request.auth == null;
+      
+      // プロジェクト - ユーザーの下のサブコレクション
+      match /projects/{projectId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth == null; // Cloud Functions管理者権限
+        
+        // プラン - プロジェクトの下のサブコレクション
+        match /plans/{planId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read, write: if request.auth == null; // Cloud Functions管理者権限
+          
+          // 投稿 - プランの下のサブコレクション
+          match /posts/{postId} {
+            allow read, write: if request.auth != null && request.auth.uid == userId;
+            allow read, write: if request.auth == null; // Cloud Functions管理者権限
+          }
+        }
+        
+        // プロジェクト設定
+        match /settings/{settingId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+          allow read, write: if request.auth == null; // Cloud Functions管理者権限
+        }
+      }
+      
+      // 認証情報（暗号化）
+      match /credentials/{platformId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth == null; // Cloud Functions管理者権限
+      }
+    }
+    
+    // 旧システム互換（移行期間中のみ）
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    match /plans/{planId} {
+      allow read, write, create: if request.auth != null;
+    }
+    
+    match /posts/{postId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // その他のドキュメントはデフォルトで拒否
     match /{document=**} {
-      allow read, write: if request.auth != null;  // 認証済みユーザー
-      allow read, write: if request.auth == null;  // Cloud Functions管理者権限
+      allow read, write: if false;
     }
   }
 }
