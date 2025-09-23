@@ -11,6 +11,27 @@ class FirebaseService {
     this.isInitialized = false;
   }
 
+  // 安全なコンソール出力ヘルパー
+  _safeLog(message, data = null) {
+    try {
+      if (data === null) {
+        console.log(message);
+      } else if (typeof data === 'string' || typeof data === 'number') {
+        console.log(message, data);
+      } else if (Array.isArray(data)) {
+        console.log(message, `配列(${data.length}件)`);
+      } else if (typeof data === 'object') {
+        // オブジェクトの場合は基本的な情報のみ出力
+        const keys = Object.keys(data).slice(0, 3);
+        console.log(message, `オブジェクト(${keys.join(', ')}${Object.keys(data).length > 3 ? '...' : ''})`);
+      } else {
+        console.log(message, typeof data);
+      }
+    } catch (error) {
+      console.log(message, '[出力エラー]');
+    }
+  }
+
   /**
    * Firebase を初期化
    */
@@ -232,7 +253,7 @@ class FirebaseService {
         projectData: projectData
       });
 
-      console.log(`✅ プロジェクト同期成功 (${action}):`, result.data);
+      this._safeLog(`✅ プロジェクト同期成功 (${action}):`, result.data);
       return { success: true, data: result.data };
       
     } catch (error) {
@@ -398,13 +419,23 @@ class FirebaseService {
       const projects = [];
 
       snapshot.forEach(doc => {
+        const data = doc.data();
         projects.push({
           id: doc.id,
-          ...doc.data()
+          ...data
         });
       });
 
       console.log(`✅ プロジェクト一覧取得成功（階層構造）: ${projects.length}件`);
+
+      // 巨大なオブジェクトのコンソール出力を避けるため、プロジェクト名のみログ出力
+      if (projects.length > 0) {
+        const projectNames = projects.map(p => p.name || 'Unnamed').join(', ');
+        if (projectNames.length < 200) { // 200文字以下の場合のみ出力
+          console.log(`📋 プロジェクト: ${projectNames}`);
+        }
+      }
+
       return { success: true, projects };
 
     } catch (error) {
@@ -640,10 +671,11 @@ class FirebaseService {
       this._checkAuthenticated();
 
       const currentUser = this.getCurrentUser();
-      console.log('🔍 プラン作成デバッグ情報:');
+      console.log('🔍 プラン作成開始:');
       console.log('- ユーザーID:', currentUser?.uid);
       console.log('- プロジェクトID:', projectId);
-      console.log('- プランデータ:', JSON.stringify(planData, null, 2));
+      console.log('- プラン名:', planData.name || 'Unnamed');
+      console.log('- 投稿頻度:', planData.frequency || 'unknown');
 
       // 階層構造: users/{userId}/projects/{projectId}/plans
       const plansRef = this.firebaseFirestore.collection(
@@ -1152,6 +1184,436 @@ class FirebaseService {
       
     } catch (error) {
       console.error('❌ Firebase接続確認失敗:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ==========================================
+  // 会話記録管理機能
+  // ==========================================
+
+  /**
+   * 会話記録を保存
+   */
+  async saveConversation(projectId, planId, postId, conversationData) {
+    try {
+      if (!this.isLoggedIn()) {
+        return { success: false, error: 'ログインが必要です' };
+      }
+
+      const userId = this.currentUser.uid;
+      const firestore = await import('firebase/firestore');
+
+      // 会話記録のパス: /users/{userId}/projects/{projectId}/plans/{planId}/posts/{postId}/conversations/
+      const conversationsRef = firestore.collection(this.db,
+        'users', userId,
+        'projects', projectId,
+        'plans', planId,
+        'posts', postId,
+        'conversations'
+      );
+
+      const docRef = await firestore.addDoc(conversationsRef, conversationData);
+
+      console.log('✅ 会話記録保存成功:', docRef.id);
+      return {
+        success: true,
+        conversationId: docRef.id,
+        message: '会話記録を保存しました'
+      };
+
+    } catch (error) {
+      console.error('❌ 会話記録保存エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 投稿の会話記録を取得
+   */
+  async getPostConversations(projectId, planId, postId) {
+    try {
+      if (!this.isLoggedIn()) {
+        return { success: false, error: 'ログインが必要です' };
+      }
+
+      const userId = this.currentUser.uid;
+      const firestore = await import('firebase/firestore');
+
+      const conversationsRef = firestore.collection(this.db,
+        'users', userId,
+        'projects', projectId,
+        'plans', planId,
+        'posts', postId,
+        'conversations'
+      );
+
+      const q = firestore.query(
+        conversationsRef,
+        firestore.orderBy('createdAt', 'desc')
+      );
+
+      const querySnapshot = await firestore.getDocs(q);
+      const conversations = [];
+
+      querySnapshot.forEach((doc) => {
+        conversations.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      console.log(`✅ 投稿会話記録取得: ${conversations.length}件`);
+      return {
+        success: true,
+        conversations,
+        count: conversations.length
+      };
+
+    } catch (error) {
+      console.error('❌ 投稿会話記録取得エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * プラン全体の会話記録を取得（collectionGroup使用）
+   */
+  async getPlanConversations(planId, limit = 20) {
+    try {
+      if (!this.isLoggedIn()) {
+        return { success: false, error: 'ログインが必要です' };
+      }
+
+      const firestore = await import('firebase/firestore');
+
+      // collectionGroupを使用してプラン内の全投稿の会話記録を取得
+      const conversationsRef = firestore.collectionGroup(this.db, 'conversations');
+
+      const q = firestore.query(
+        conversationsRef,
+        firestore.where('planId', '==', planId),
+        firestore.orderBy('createdAt', 'desc'),
+        firestore.limit(limit)
+      );
+
+      const querySnapshot = await firestore.getDocs(q);
+      const conversations = [];
+
+      querySnapshot.forEach((doc) => {
+        conversations.push({
+          id: doc.id,
+          path: doc.ref.path, // パス情報も含める
+          ...doc.data()
+        });
+      });
+
+      console.log(`✅ プラン会話記録取得: ${conversations.length}件`);
+      return {
+        success: true,
+        conversations,
+        count: conversations.length
+      };
+
+    } catch (error) {
+      console.error('❌ プラン会話記録取得エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 会話記録を更新
+   */
+  async updateConversation(projectId, planId, postId, conversationId, updateData) {
+    try {
+      if (!this.isLoggedIn()) {
+        return { success: false, error: 'ログインが必要です' };
+      }
+
+      const userId = this.currentUser.uid;
+      const firestore = await import('firebase/firestore');
+
+      const conversationRef = firestore.doc(this.db,
+        'users', userId,
+        'projects', projectId,
+        'plans', planId,
+        'posts', postId,
+        'conversations', conversationId
+      );
+
+      await firestore.updateDoc(conversationRef, updateData);
+
+      console.log('✅ 会話記録更新成功:', conversationId);
+      return {
+        success: true,
+        message: '会話記録を更新しました'
+      };
+
+    } catch (error) {
+      console.error('❌ 会話記録更新エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 会話記録から学習データを抽出
+   */
+  async extractLearningFromConversations(conversations) {
+    try {
+      const learningPatterns = {
+        tonePreferences: [],
+        styleElements: [],
+        contentTypes: [],
+        userPatterns: []
+      };
+
+      conversations.forEach(conversation => {
+        if (conversation.summary && conversation.summary.userPreferences) {
+          learningPatterns.tonePreferences.push(...conversation.summary.userPreferences);
+        }
+
+        // メッセージから学習パターンを抽出
+        conversation.messages?.forEach(message => {
+          if (message.role === 'user') {
+            // ユーザーの指示パターンを分析
+            const content = message.content.toLowerCase();
+
+            if (content.includes('カジュアル') || content.includes('親しみ')) {
+              learningPatterns.tonePreferences.push('casual');
+            }
+            if (content.includes('絵文字') || content.includes('emoji')) {
+              learningPatterns.styleElements.push('emoji');
+            }
+            if (content.includes('短く') || content.includes('簡潔')) {
+              learningPatterns.styleElements.push('concise');
+            }
+          }
+        });
+      });
+
+      // 重複除去と頻度計算
+      const preferences = this.analyzeFrequency(learningPatterns);
+
+      return {
+        success: true,
+        learningData: preferences,
+        conversationCount: conversations.length
+      };
+
+    } catch (error) {
+      console.error('❌ 学習データ抽出エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 頻度分析ヘルパー
+   */
+  analyzeFrequency(patterns) {
+    const frequency = {};
+
+    Object.keys(patterns).forEach(key => {
+      const items = patterns[key];
+      const counts = {};
+
+      items.forEach(item => {
+        counts[item] = (counts[item] || 0) + 1;
+      });
+
+      // 頻度順にソート
+      frequency[key] = Object.entries(counts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5) // 上位5つ
+        .map(([item, count]) => ({ item, count }));
+    });
+
+    return frequency;
+  }
+
+  // ==========================================
+  // AI概要生成・管理機能
+  // ==========================================
+
+  /**
+   * プロジェクトのAI概要を更新・保存
+   */
+  async updateProjectAISummary(projectId, summaryData) {
+    try {
+      if (!this.isLoggedIn()) {
+        return { success: false, error: 'ログインが必要です' };
+      }
+
+      const userId = this.currentUser.uid;
+      const firestore = await import('firebase/firestore');
+
+      const projectRef = firestore.doc(this.db,
+        'users', userId,
+        'projects', projectId
+      );
+
+      // 既存のプロジェクトデータを取得
+      const projectDoc = await firestore.getDoc(projectRef);
+      if (!projectDoc.exists()) {
+        return { success: false, error: 'プロジェクトが見つかりません' };
+      }
+
+      const projectData = projectDoc.data();
+      const currentHistory = projectData.summaryHistory || [];
+
+      // 新しい履歴エントリを作成（AI生成の場合のみ）
+      let newHistory = [...currentHistory];
+      if (summaryData.aiSummary && summaryData.generatedAt) {
+        newHistory.push({
+          version: currentHistory.length + 1,
+          content: summaryData.aiSummary,
+          createdAt: summaryData.generatedAt,
+          prompt: summaryData.prompt || null,
+          provider: summaryData.provider || null,
+          manuallyEdited: summaryData.manuallyEdited || false
+        });
+
+        // 履歴は最大10件まで保持
+        if (newHistory.length > 10) {
+          newHistory = newHistory.slice(-10);
+        }
+      }
+
+      // プロジェクトを更新
+      const updateData = {
+        ...summaryData,
+        summaryHistory: newHistory,
+        updatedAt: new Date().toISOString()
+      };
+
+      await firestore.updateDoc(projectRef, updateData);
+
+      console.log('✅ プロジェクトAI概要更新成功:', projectId);
+      return {
+        success: true,
+        message: 'AI概要を更新しました'
+      };
+
+    } catch (error) {
+      console.error('❌ プロジェクトAI概要更新エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * プロジェクトの詳細情報を取得（AI概要を含む）
+   */
+  async getProjectDetailsWithAISummary(projectId) {
+    try {
+      if (!this.isLoggedIn()) {
+        return { success: false, error: 'ログインが必要です' };
+      }
+
+      const userId = this.currentUser.uid;
+      const firestore = await import('firebase/firestore');
+
+      const projectRef = firestore.doc(this.db,
+        'users', userId,
+        'projects', projectId
+      );
+
+      const projectDoc = await firestore.getDoc(projectRef);
+      if (!projectDoc.exists()) {
+        return { success: false, error: 'プロジェクトが見つかりません' };
+      }
+
+      const projectData = projectDoc.data();
+
+      console.log('✅ プロジェクト詳細取得成功（AI概要含む）:', projectId);
+      return {
+        success: true,
+        project: {
+          id: projectDoc.id,
+          ...projectData
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ プロジェクト詳細取得エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 個別プランを取得
+   */
+  async getPlan(projectId, planId) {
+    try {
+      if (!this.isLoggedIn()) {
+        return { success: false, error: 'ログインが必要です' };
+      }
+
+      const userId = this.currentUser.uid;
+      const firestore = await import('firebase/firestore');
+
+      const planRef = firestore.doc(this.db,
+        'users', userId,
+        'projects', projectId,
+        'plans', planId
+      );
+
+      const planDoc = await firestore.getDoc(planRef);
+      if (!planDoc.exists()) {
+        return { success: false, error: 'プランが見つかりません' };
+      }
+
+      const planData = planDoc.data();
+      console.log('✅ プラン取得成功:', planId);
+
+      return {
+        success: true,
+        plan: {
+          id: planId,
+          ...planData
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ プラン取得エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * プラン詳細情報を取得
+   */
+  async getPlanDetails(projectId, planId) {
+    try {
+      if (!this.isLoggedIn()) {
+        return { success: false, error: 'ログインが必要です' };
+      }
+
+      const userId = this.currentUser.uid;
+      const firestore = await import('firebase/firestore');
+
+      const planRef = firestore.doc(this.db,
+        'users', userId,
+        'projects', projectId,
+        'plans', planId
+      );
+
+      const planDoc = await firestore.getDoc(planRef);
+      if (!planDoc.exists()) {
+        return { success: false, error: 'プランが見つかりません' };
+      }
+
+      const planData = planDoc.data();
+
+      console.log('✅ プラン詳細取得成功:', planId);
+      return {
+        success: true,
+        plan: {
+          id: planDoc.id,
+          ...planData
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ プラン詳細取得エラー:', error);
       return { success: false, error: error.message };
     }
   }

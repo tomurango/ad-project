@@ -1204,6 +1204,16 @@ ipcMain.handle('firebase-delete-plan', async (event, planId) => {
   }
 });
 
+// 個別プランを取得
+ipcMain.handle('firebase-get-plan', async (event, projectId, planId) => {
+  try {
+    const result = await firebaseService.getPlan(projectId, planId);
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 // ==========================================
 // Firebase 投稿管理 IPCハンドラー
 // ==========================================
@@ -2457,6 +2467,298 @@ ipcMain.handle('generate-manual-auto-post', async (event, { projectId, planId })
     return result;
   } catch (error) {
     console.error('❌ 手動自動投稿生成エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ==========================================
+// 会話記録管理 IPCハンドラー
+// ==========================================
+
+// 会話記録を保存
+ipcMain.handle('save-conversation', async (event, conversationData) => {
+  try {
+    if (!firebaseService.isLoggedIn()) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    const { projectId, planId, postId, messages, summary } = conversationData;
+
+    if (!projectId || !planId || !postId || !messages) {
+      return { success: false, error: '必要なパラメータが不足しています' };
+    }
+
+    const result = await firebaseService.saveConversation(projectId, planId, postId, {
+      planId,
+      postId,
+      messages,
+      summary: summary || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+
+    return result;
+  } catch (error) {
+    console.error('❌ 会話記録保存エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 投稿の会話記録を取得
+ipcMain.handle('get-post-conversations', async (event, projectId, planId, postId) => {
+  try {
+    if (!firebaseService.isLoggedIn()) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    if (!projectId || !planId || !postId) {
+      return { success: false, error: '必要なパラメータが不足しています' };
+    }
+
+    const result = await firebaseService.getPostConversations(projectId, planId, postId);
+    return result;
+  } catch (error) {
+    console.error('❌ 投稿会話記録取得エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// プラン全体の会話記録を取得（collectionGroup使用）
+ipcMain.handle('get-plan-conversations', async (event, planId, limit = 20) => {
+  try {
+    if (!firebaseService.isLoggedIn()) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    if (!planId) {
+      return { success: false, error: 'プランIDが必要です' };
+    }
+
+    const result = await firebaseService.getPlanConversations(planId, limit);
+    return result;
+  } catch (error) {
+    console.error('❌ プラン会話記録取得エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 会話記録を更新
+ipcMain.handle('update-conversation', async (event, projectId, planId, postId, conversationId, updateData) => {
+  try {
+    if (!firebaseService.isLoggedIn()) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    if (!projectId || !planId || !postId || !conversationId) {
+      return { success: false, error: '必要なパラメータが不足しています' };
+    }
+
+    const result = await firebaseService.updateConversation(projectId, planId, postId, conversationId, {
+      ...updateData,
+      updatedAt: new Date().toISOString()
+    });
+
+    return result;
+  } catch (error) {
+    console.error('❌ 会話記録更新エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// ==========================================
+// AI概要生成機能 IPCハンドラー
+// ==========================================
+
+// プロジェクトのAI概要を生成
+ipcMain.handle('generate-project-ai-summary', async (event, projectId, projectData) => {
+  try {
+    if (!firebaseService.isLoggedIn()) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    if (!projectId || !projectData) {
+      return { success: false, error: '必要なパラメータが不足しています' };
+    }
+
+    // AI概要生成プロンプトを構築
+    const prompt = `以下のプロジェクト情報を元に、SNS投稿生成に最適化された簡潔で魅力的な概要を作成してください。
+
+プロジェクト名: ${projectData.name}
+ユーザー説明: ${projectData.description || '説明なし'}
+技術スタック: ${projectData.technologies ? projectData.technologies.join(', ') : '未指定'}
+GitHub URL: ${projectData.githubUrl || '未設定'}
+
+要件:
+- 100-150文字程度で簡潔に
+- SNS投稿での使用を想定
+- プロジェクトの価値や特徴を強調
+- 技術的すぎず、一般ユーザーにも理解しやすく
+- ハッシュタグは含めない
+
+概要:`;
+
+    const result = await aiServiceManager.generateText(prompt, {
+      maxTokens: 200,
+      temperature: 0.7
+    });
+
+    if (result.success) {
+      const aiSummary = result.content.trim();
+
+      // プロジェクトにAI概要を保存
+      const updateResult = await firebaseService.updateProjectAISummary(projectId, {
+        aiSummary: aiSummary,
+        summaryHistory: projectData.summaryHistory || [],
+        prompt: prompt,
+        generatedAt: new Date().toISOString(),
+        provider: result.provider
+      });
+
+      if (updateResult.success) {
+        console.log('✅ AI概要生成・保存成功:', aiSummary.substring(0, 50) + '...');
+        return {
+          success: true,
+          aiSummary: aiSummary,
+          provider: result.provider
+        };
+      } else {
+        return { success: false, error: updateResult.error };
+      }
+    } else {
+      return { success: false, error: result.error };
+    }
+
+  } catch (error) {
+    console.error('❌ AI概要生成エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// プロジェクトのAI概要を更新
+ipcMain.handle('update-project-ai-summary', async (event, projectId, aiSummary) => {
+  try {
+    if (!firebaseService.isLoggedIn()) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    if (!projectId || !aiSummary) {
+      return { success: false, error: '必要なパラメータが不足しています' };
+    }
+
+    const result = await firebaseService.updateProjectAISummary(projectId, {
+      aiSummary: aiSummary.trim(),
+      manuallyEdited: true,
+      updatedAt: new Date().toISOString()
+    });
+
+    return result;
+  } catch (error) {
+    console.error('❌ AI概要更新エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// プロジェクト詳細情報を取得（AI概要含む）
+ipcMain.handle('get-project-details-with-ai-summary', async (event, projectId) => {
+  try {
+    if (!firebaseService.isLoggedIn()) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    if (!projectId) {
+      return { success: false, error: 'プロジェクトIDが必要です' };
+    }
+
+    const result = await firebaseService.getProjectDetailsWithAISummary(projectId);
+    return result;
+  } catch (error) {
+    console.error('❌ プロジェクト詳細取得エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// プラン詳細情報を取得
+ipcMain.handle('get-plan-details', async (event, projectId, planId) => {
+  try {
+    if (!firebaseService.isLoggedIn()) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    if (!projectId || !planId) {
+      return { success: false, error: '必要なパラメータが不足しています' };
+    }
+
+    const result = await firebaseService.getPlanDetails(projectId, planId);
+    return result;
+  } catch (error) {
+    console.error('❌ プラン詳細取得エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 会話用の総合的な文脈情報を取得
+ipcMain.handle('get-conversation-context', async (event, projectId, planId, postId) => {
+  try {
+    if (!firebaseService.isLoggedIn()) {
+      return { success: false, error: 'ログインが必要です' };
+    }
+
+    if (!projectId) {
+      return { success: false, error: 'プロジェクトIDが必要です' };
+    }
+
+    // プロジェクト情報を取得
+    const projectResult = await firebaseService.getProjectDetailsWithAISummary(projectId);
+    if (!projectResult.success) {
+      return { success: false, error: projectResult.error };
+    }
+
+    const context = {
+      project: projectResult.project
+    };
+
+    // プラン情報を取得（プラン編集時）
+    if (planId) {
+      const planResult = await firebaseService.getPlanDetails(projectId, planId);
+      if (planResult.success) {
+        context.plan = planResult.plan;
+      }
+
+      // プラン全体の会話履歴を取得
+      const conversationsResult = await firebaseService.getPlanConversations(planId, 10);
+      if (conversationsResult.success) {
+        context.conversationHistory = conversationsResult.conversations;
+      }
+    }
+
+    // 投稿情報を取得（投稿編集時）
+    if (postId && planId) {
+      const postResult = await firebaseService.getPost(projectId, planId, postId);
+      if (postResult.success) {
+        context.post = postResult.post;
+      }
+
+      // 投稿の会話履歴を取得
+      const postConversationsResult = await firebaseService.getPostConversations(projectId, planId, postId);
+      if (postConversationsResult.success) {
+        context.postConversations = postConversationsResult.conversations;
+      }
+    }
+
+    console.log('✅ 会話文脈情報取得成功:', {
+      projectId,
+      planId: planId || 'なし',
+      postId: postId || 'なし',
+      hasAISummary: !!context.project?.aiSummary
+    });
+
+    return {
+      success: true,
+      context: context
+    };
+
+  } catch (error) {
+    console.error('❌ 会話文脈情報取得エラー:', error);
     return { success: false, error: error.message };
   }
 });
