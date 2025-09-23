@@ -5,6 +5,8 @@
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const {onSchedule} = require('firebase-functions/v2/scheduler');
+const {onRequest} = require('firebase-functions/v2/https');
 
 // Firestoreインスタンス
 const db = admin.firestore();
@@ -14,15 +16,13 @@ const db = admin.firestore();
  * cron: 毎日9時に実行 ('0 9 * * *')
  * 3日後が投稿予定日のプランの投稿を生成
  */
-exports.processAutoPostsScheduled = functions
-  .runWith({
-    timeoutSeconds: 540, // 9分タイムアウト
-    memory: '1GB'
-  })
-  .pubsub
-  .schedule('0 9 * * *') // 毎日9時実行
-  .timeZone('Asia/Tokyo')
-  .onRun(async (context) => {
+exports.processAutoPostsScheduledV2 = onSchedule({
+  schedule: '0 9 * * *',
+  timeZone: 'Asia/Tokyo',
+  memory: '1GiB',
+  timeoutSeconds: 540,
+  minInstances: 0
+}, async (event) => {
     console.log('🤖 自動投稿処理開始 - スケジュール実行');
     
     try {
@@ -47,13 +47,12 @@ exports.processAutoPostsScheduled = functions
  * 手動自動投稿処理トリガー
  * HTTPリクエストで手動実行可能
  */
-exports.processAutoPostsManual = functions
-  .runWith({
-    timeoutSeconds: 540,
-    memory: '1GB'
-  })
-  .https
-  .onRequest(async (req, res) => {
+exports.processAutoPostsManualV2 = onRequest({
+  memory: '1GiB',
+  timeoutSeconds: 540,
+  minInstances: 0,
+  cors: true
+}, async (req, res) => {
     console.log('🎯 自動投稿処理開始 - 手動実行');
     
     try {
@@ -325,47 +324,82 @@ function shouldGeneratePost(planData, currentTime, isManualExecution = false) {
 async function generateAutoPost(userId, projectId, projectData, planId, planData) {
   try {
     // AI投稿内容を生成（改良版）
-    const content = await generateAIContent(projectData, planData, userId, projectId, planId);
+    const aiResult = await generateAIContent(projectData, planData, userId, projectId, planId);
     
-    // 投稿日時を計算（3日後のプラン設定時刻）- JST対応
+    // 投稿日時を計算（3日後のプラン設定時刻）- JST対応修正版
     const scheduleTime = planData.schedule?.time || '10:00';
     const [scheduleHour, scheduleMinute] = scheduleTime.split(':').map(Number);
-    
-    // 日本時間（JST）で3日後の日付を計算
+
+    // 現在のUTC時刻から3日後の日付を計算
     const now = new Date();
-    const jstOffset = 9 * 60; // JST = UTC+9時間（分換算）
-    const nowJST = new Date(now.getTime() + jstOffset * 60 * 1000);
-    
-    // 3日後のJST日付を計算
-    const targetDateJST = new Date(nowJST);
-    targetDateJST.setDate(targetDateJST.getDate() + 3);
-    
-    // 指定時刻を設定（JST）
-    targetDateJST.setHours(scheduleHour, scheduleMinute, 0, 0);
-    
-    // UTCに変換してISO文字列で保存
-    const scheduledAt = new Date(targetDateJST.getTime() - jstOffset * 60 * 1000);
-    
+    const targetDate = new Date(now);
+    targetDate.setDate(targetDate.getDate() + 3);
+
+    // UTC時刻で指定時刻を設定（JST時刻をUTCに変換）
+    // JST時刻からUTC時刻に変換: JST時刻 - 9時間 = UTC時刻
+    const utcHour = scheduleHour - 9;
+    let finalHour = utcHour;
+    let dayOffset = 0;
+
+    // 時刻が負の値の場合は前日に調整
+    if (utcHour < 0) {
+      finalHour = utcHour + 24;
+      dayOffset = -1;
+    }
+    // 時刻が24以上の場合は翌日に調整
+    else if (utcHour >= 24) {
+      finalHour = utcHour - 24;
+      dayOffset = 1;
+    }
+
+    // 最終的な投稿予定時刻を設定（UTC）
+    const scheduledAt = new Date(targetDate);
+    scheduledAt.setDate(scheduledAt.getDate() + dayOffset);
+    scheduledAt.setHours(finalHour, scheduleMinute, 0, 0);
+
     // デバッグ用ログ出力
-    console.log(`🕐 プラン設定時刻: ${scheduleTime}`);
+    console.log(`🕐 プラン設定時刻(JST): ${scheduleTime}`);
     console.log(`🌏 現在のUTC時刻: ${now.toISOString()}`);
-    console.log(`🇯🇵 現在のJST時刻: ${nowJST.toISOString()}`);
-    console.log(`📅 3日後のJST日時: ${targetDateJST.toISOString()}`);
+    console.log(`📅 3日後の基準日: ${targetDate.toDateString()}`);
+    console.log(`🔄 JST→UTC変換: ${scheduleHour}:${scheduleMinute} JST → ${finalHour}:${scheduleMinute} UTC (日付オフセット: ${dayOffset}日)`);
     console.log(`📅 最終的な投稿予定時刻(UTC): ${scheduledAt.toISOString()}`);
-    console.log(`📅 投稿予定時刻(JST表示): ${new Date(scheduledAt.getTime() + jstOffset * 60 * 1000).toISOString()}`);
-    
-    // 投稿データを作成
-    const postData = {
-      content: content,
-      scheduledAt: scheduledAt.toISOString(),
-      status: 'scheduled',
-      type: 'auto_generated',
-      platform: planData.platform,
-      planId: planId,
-      planName: planData.name,
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
-    };
+    console.log(`📅 投稿予定時刻(JST確認): ${new Date(scheduledAt.getTime() + 9 * 60 * 60 * 1000).toISOString().replace('Z', '+09:00')}`);
+
+    // AI生成結果に応じて投稿データを作成
+    let postData;
+
+    if (aiResult.success) {
+      // AI生成成功時
+      postData = {
+        content: aiResult.content,
+        scheduledAt: scheduledAt.toISOString(),
+        status: 'scheduled',
+        type: 'auto_generated',
+        platform: planData.platform,
+        planId: planId,
+        planName: planData.name,
+        createdAt: new Date().toISOString(),
+        lastModified: new Date().toISOString()
+      };
+    } else {
+      // AI生成失敗時 - 手動入力必要な状態で投稿作成
+      postData = {
+        content: `【AI生成失敗 - 手動入力が必要です】\n\nエラー: ${aiResult.error}\n\nプラン: ${planData.name}\nプラットフォーム: ${planData.platform}\n\n※ この投稿を編集して内容を入力してください`,
+        scheduledAt: scheduledAt.toISOString(),
+        status: 'draft', // draftステータスに変更
+        type: 'ai_failed_manual_required',
+        platform: planData.platform,
+        planId: planId,
+        planName: planData.name,
+        aiGenerationFailed: true,
+        aiError: aiResult.error,
+        requiresManualInput: true,
+        createdAt: new Date().toISOString(),
+        lastModified: new Date().toISOString()
+      };
+
+      console.error(`❌ AI生成失敗により手動入力用ドラフト作成: ${planData.name}`);
+    }
     
     // Firestoreに投稿を保存
     const postsRef = db
@@ -380,11 +414,13 @@ async function generateAutoPost(userId, projectId, projectData, planId, planData
     const docRef = await postsRef.add(postData);
     
     console.log(`📝 自動投稿保存成功: ${docRef.id}`);
-    
+
     return {
       success: true,
       postId: docRef.id,
-      content: content
+      content: aiResult.success ? aiResult.content : postData.content,
+      aiGenerationStatus: aiResult.success ? 'success' : 'failed',
+      requiresManualInput: !aiResult.success
     };
     
   } catch (error) {
@@ -434,20 +470,24 @@ async function getRecentPosts(userId, projectId, planId, limit = 5) {
 }
 
 /**
- * 改良版AI投稿内容を生成（重複回避・バリエーション対応）
+ * 改良版AI投稿内容を生成（重複回避・バリエーション・学習履歴対応）
  */
 async function generateAIContent(projectData, planData, userId, projectId, planId) {
   try {
     const aiServiceManager = require('./ai-service-manager');
-    
+
     // 過去の投稿履歴を取得
     const recentPosts = await getRecentPosts(userId, projectId, planId, 5);
-    
-    // プロンプトを構築
-    let prompt = buildEnhancedPrompt(projectData, planData, recentPosts);
-    
-    console.log('🎯 強化されたプロンプトを使用');
+
+    // Plan全体の会話記録から学習データを取得
+    const conversationLearning = await getPlanConversationLearning(planId);
+
+    // プロンプトを構築（学習データを含む）
+    let prompt = buildEnhancedPrompt(projectData, planData, recentPosts, conversationLearning);
+
+    console.log('🎯 学習履歴を含む強化されたプロンプトを使用');
     console.log('📜 過去投稿数:', recentPosts.length);
+    console.log('🧠 学習データ:', conversationLearning ? '有り' : '無し');
 
     const result = await aiServiceManager.generateText(prompt, {
       maxTokens: 400,
@@ -456,21 +496,125 @@ async function generateAIContent(projectData, planData, userId, projectId, planI
 
     if (result.success) {
       console.log(`✅ AI投稿生成成功 (${result.provider}): ${result.content.substring(0, 50)}...`);
-      return result.content.trim();
+      return {
+        success: true,
+        content: result.content.trim()
+      };
     } else {
-      console.warn(`⚠️ AI投稿生成失敗、フォールバックを使用: ${result.error}`);
-      return generateFallbackContent(projectData, planData);
+      console.error(`❌ AI投稿生成失敗: ${result.error}`);
+      return {
+        success: false,
+        error: result.error,
+        requiresManualInput: true
+      };
     }
   } catch (error) {
     console.error('❌ AI投稿生成エラー:', error);
-    return generateFallbackContent(projectData, planData);
+    return {
+      success: false,
+      error: error.message,
+      requiresManualInput: true
+    };
   }
 }
 
 /**
- * 強化されたプロンプトを構築（重複回避・バリエーション対応）
+ * Plan全体の会話記録から学習データを取得
  */
-function buildEnhancedPrompt(projectData, planData, recentPosts) {
+async function getPlanConversationLearning(planId) {
+  try {
+    // collectionGroupを使用してプラン内の全会話記録を取得
+    const conversationsSnapshot = await db.collectionGroup('conversations')
+      .where('planId', '==', planId)
+      .orderBy('createdAt', 'desc')
+      .limit(10) // 最新10件の会話を分析
+      .get();
+
+    if (conversationsSnapshot.empty) {
+      console.log('📭 会話記録なし:', planId);
+      return null;
+    }
+
+    const conversations = [];
+    conversationsSnapshot.forEach(doc => {
+      conversations.push(doc.data());
+    });
+
+    console.log(`🧠 Plan学習データ取得: ${conversations.length}件の会話を分析`);
+
+    // 学習パターンを抽出
+    const learningData = extractLearningPatterns(conversations);
+    return learningData;
+
+  } catch (error) {
+    console.error('❌ Plan学習データ取得エラー:', error);
+    return null;
+  }
+}
+
+/**
+ * 会話記録から学習パターンを抽出
+ */
+function extractLearningPatterns(conversations) {
+  const patterns = {
+    tonePreferences: new Set(),
+    styleElements: new Set(),
+    improvements: new Set(),
+    frequency: {}
+  };
+
+  conversations.forEach(conversation => {
+    // summaryからパターンを抽出
+    if (conversation.summary) {
+      if (conversation.summary.userPreferences) {
+        conversation.summary.userPreferences.forEach(pref => {
+          patterns.tonePreferences.add(pref);
+        });
+      }
+      if (conversation.summary.improvements) {
+        conversation.summary.improvements.forEach(imp => {
+          patterns.improvements.add(imp);
+        });
+      }
+    }
+
+    // メッセージからパターンを直接抽出
+    if (conversation.messages) {
+      conversation.messages.forEach(message => {
+        if (message.role === 'user') {
+          const content = message.content.toLowerCase();
+
+          // 頻度を記録
+          const preferences = ['カジュアル', '親しみ', 'フォーマル', '丁寧', '絵文字', '短く', '簡潔', '具体的'];
+          preferences.forEach(pref => {
+            if (content.includes(pref)) {
+              patterns.frequency[pref] = (patterns.frequency[pref] || 0) + 1;
+            }
+          });
+        }
+      });
+    }
+  });
+
+  // 最も頻度の高い設定を選出
+  const topPreferences = Object.entries(patterns.frequency)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 3)
+    .map(([pref, count]) => ({ preference: pref, count }));
+
+  return {
+    tonePreferences: Array.from(patterns.tonePreferences),
+    styleElements: Array.from(patterns.styleElements),
+    improvements: Array.from(patterns.improvements),
+    topPreferences: topPreferences,
+    totalConversations: conversations.length
+  };
+}
+
+/**
+ * 強化されたプロンプトを構築（重複回避・バリエーション・学習履歴対応）
+ */
+function buildEnhancedPrompt(projectData, planData, recentPosts, conversationLearning) {
   let prompt = '';
 
   // カスタムプロンプトがある場合はベースとして使用
@@ -484,6 +628,28 @@ function buildEnhancedPrompt(projectData, planData, recentPosts) {
 文字数: ${planData.platform === 'twitter' ? '280文字以内' : '200文字程度'}
 
 `;
+  }
+
+  // 学習履歴を活用した指示を追加
+  if (conversationLearning && conversationLearning.topPreferences.length > 0) {
+    prompt += `【学習済みユーザー設定】\n`;
+    prompt += `過去の対話から学習したあなたの好みを反映します：\n`;
+
+    conversationLearning.topPreferences.forEach(pref => {
+      prompt += `- ${pref.preference}を重視 (${pref.count}回指定)\n`;
+    });
+
+    if (conversationLearning.tonePreferences.length > 0) {
+      const toneText = conversationLearning.tonePreferences.join('、');
+      prompt += `- 希望トーン: ${toneText}\n`;
+    }
+
+    if (conversationLearning.improvements.length > 0) {
+      const improvementText = conversationLearning.improvements.join('、');
+      prompt += `- 重視する改善点: ${improvementText}\n`;
+    }
+
+    prompt += `\n`;
   }
 
   // 重複回避指示を追加
