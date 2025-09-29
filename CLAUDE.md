@@ -430,8 +430,289 @@ const nowJST = new Date(now.getTime() + jstOffset * 60 * 1000);
 3. **自動バリエーション**: 投稿スタイルの自動多様化
 4. **学習継続**: カスタムプロンプトとの統合維持
 
+## 🚀 2025-09-25 更新: Cloud Functions v2 + AI失敗処理システム完全実装
+
+### ✅ 実装完了した機能
+
+#### 1. Cloud Functions v2への完全移行
+- **Node.js 22 + firebase-functions v6.4.0**: 最新環境への完全移行
+- **v2構文対応**: onSchedule, onRequest での実装
+- **パフォーマンス向上**: より高速な起動時間とスケーラビリティ改善
+- **長期サポート**: 最新Node.jsサポートと将来性確保
+
+#### 2. AI生成失敗処理の革新的実装
+- **明確な失敗状態**: フォールバックテキストを廃止、失敗状態で投稿作成
+- **データ構造拡張**:
+  ```javascript
+  {
+    content: "【AI生成失敗 - 手動入力が必要です】\n\nエラー: [具体的なエラー内容]",
+    status: 'draft', // draftステータス
+    type: 'ai_failed_manual_required',
+    aiGenerationFailed: true,
+    requiresManualInput: true
+  }
+  ```
+- **詳細エラー情報**: 具体的なエラー内容とユーザー向け手動編集促進
+
+#### 3. フロントエンド視覚的表示強化
+- **失敗投稿の視覚的区別**: 赤いボーダー + 背景色で明示
+- **警告メッセージ**: "⚠️ AI生成に失敗しました - 手動で内容を入力してください"
+- **要編集ラベル**: "🔧 要編集" ステータスラベル追加
+- **モバイル対応**: レスポンシブデザインで小画面端末最適化
+
+#### 4. v2互換性修正
+- **functions.config() 廃止**: 全て環境変数に移行
+- **影響ファイル**:
+  - `/functions/src/aiGenerator.js`
+  - `/functions/src/utils/encryption.js`
+  - `/functions/src/googleAdsSimple.js`
+- **プロダクション環境対応**: Cloud Functions v2完全対応
+
+### 🔧 技術的改善
+
+#### AI失敗処理フロー
+```javascript
+// AI生成結果の構造化
+const aiResult = await generateAIContent(projectData, planData, userId, projectId, planId);
+
+if (aiResult.success) {
+  // 通常投稿作成
+  postData = { status: 'scheduled', type: 'auto_generated' };
+} else {
+  // 失敗状態投稿作成
+  postData = {
+    status: 'draft',
+    type: 'ai_failed_manual_required',
+    requiresManualInput: true,
+    aiError: aiResult.error
+  };
+}
+```
+
+#### フロントエンド判定ロジック
+```javascript
+// AI失敗投稿の判定
+const isAIFailed = post.type === 'ai_failed_manual_required' ||
+                   post.aiGenerationFailed ||
+                   post.requiresManualInput;
+```
+
+### 📊 デプロイ状況
+- **processAutoPostsScheduled** (v2): 毎日9時自動実行 ✅
+- **processAutoPostsManual** (v2): HTTP手動実行 ✅
+- **状態**: ACTIVE、正常動作確認済み
+- **URL**: `https://processautopostsmanual-p7qfk444eq-uc.a.run.app`
+
+### 🎯 実装効果
+1. **ユーザー体験向上**: AI失敗が一目で分かる明確な表示
+2. **適切な対応促進**: 手動編集が必要であることを即座に理解
+3. **システム信頼性**: 失敗状態の透明化でトラブルシューティング改善
+4. **将来性確保**: Cloud Functions v2での最新環境対応
+
+## 🚀 2025-09-29 更新: Firestore統合ユーザーAI設定システム完全実装
+
+### ✅ 新システム概要
+
+**問題の根本原因**:
+- Cloud FunctionsはOllamaサーバー（localhost:11434）にアクセス不可
+- ユーザーAPIキーがLocalStorageに保存され、Cloud Functionsで利用不可
+- 投稿プランがOllamaを指定してもサーバー環境では接続不可能
+
+**解決方針**: LocalStorageベース → **Firestore統合ユーザー設定システム**
+
+### 🏗️ アーキテクチャ変更
+
+#### 1. AIキー管理方式の抜本的見直し
+
+**旧システム**:
+```
+ユーザー → LocalStorage（APIキー）→ フロントエンド
+                ↓
+         Cloud Functions（❌ アクセス不可）
+```
+
+**新システム**:
+```
+users/{userId}/settings/aiConfig
+├─ defaultProvider: "gemini"
+├─ providers: {
+│   ├─ ollama: { cloudAvailable: false, enabled: true }   // フロントエンドのみ
+│   ├─ gemini: { cloudAvailable: true, apiKey: "..." }   // Cloud Functions対応
+│   ├─ openai: { cloudAvailable: true, apiKey: "..." }   // Cloud Functions対応
+│   └─ claude: { cloudAvailable: true, apiKey: "..." }   // Cloud Functions対応
+│ }
+├─ createdAt: timestamp
+└─ updatedAt: timestamp
+```
+
+### 🔧 実装詳細
+
+#### 2. フロントエンド AI Service Manager拡張
+- **Firestore連携**: 自動的にFirebaseサービス検出・統合
+- **マイグレーション機能**: LocalStorage → Firestore自動移行
+- **フォールバック機能**: Firestore無効時はLocalStorage継続使用
+- **ユーザーログイン対応**: ログイン/ログアウト時の設定同期
+
+```javascript
+class AIServiceManager {
+  async initializeFirestore() {
+    // Firebaseサービス検出・ユーザー設定読み込み
+    if (firebaseService.currentUser) {
+      await this.loadConfigFromFirestore();
+      await this.migrateFromLocalStorage();
+    }
+  }
+}
+```
+
+#### 3. Cloud Functions AI Service Manager強化
+- **Firestoreユーザー設定読み込み**: `loadUserAIConfig(userId)`
+- **インテリジェント選択**: `selectBestProviderForCloudFunctions()`
+- **統合AI生成**: `generateTextWithUserConfig(prompt, options, userId)`
+- **設定キャッシュ**: 高速化のためユーザー設定メモリキャッシュ
+
+```javascript
+async generateTextWithUserConfig(prompt, options = {}, userId) {
+  const userConfig = await this.loadUserAIConfig(userId);
+  const selectedProvider = this.selectBestProviderForCloudFunctions(userConfig);
+  // Ollamaは自動除外、利用可能なプロバイダーで生成実行
+}
+```
+
+#### 4. 自動投稿システム統合
+- **autoPostProcessor.js**: `aiServiceManager.generateTextWithUserConfig()`使用
+- **ユーザー個別設定**: 各ユーザーの設定を自動取得・適用
+- **Cloud Functions互換性**: Ollama無効環境での最適選択
+
+### 🎯 スマートプロバイダー選択
+
+#### プロバイダー利用可能性マトリクス
+| Provider | Frontend | Cloud Functions | 理由 |
+|----------|----------|-----------------|------|
+| **Ollama** | ✅ | ❌ | ローカルサーバーのため |
+| **Gemini** | ✅ | ✅ | クラウドAPIのため |
+| **OpenAI** | ✅ | ✅ | クラウドAPIのため |
+| **Claude** | ✅ | ✅ | クラウドAPIのため |
+
+#### 自動選択ロジック
+1. **フロントエンド**:
+   - ユーザー選択プロバイダーをそのまま使用
+   - **Ollama接続失敗時も自動切り替えしない** ← 重要な修正
+   - エラー時は具体的なメッセージ表示でユーザーに選択を委ねる
+2. **Cloud Functions**:
+   - 物理的制約によりOllamaは自動除外
+   - `cloudAvailable: true`且つ`enabled: true`から選択
+   - デフォルトプロバイダー優先、なければ最初の利用可能なものを選択
+
+### 🔄 マイグレーション機能
+
+#### LocalStorage → Firestore移行
+```javascript
+async migrateAIConfigFromLocalStorage(userId) {
+  const localConfig = localStorage.getItem('ai-service-config');
+  // 形式変換してFirestoreに保存
+  const firestoreConfig = {
+    defaultProvider: parsedConfig.currentProvider,
+    providers: convertedProviders
+  };
+  await this.saveUserAIConfig(userId, firestoreConfig);
+  localStorage.removeItem('ai-service-config'); // 旧設定削除
+}
+```
+
+### 📊 テスト結果・動作確認
+
+#### Cloud Functions エミュレーターテスト
+```json
+{
+  "success": true,
+  "processedUsers": 1,
+  "totalGenerated": 1,
+  "timestamp": "2025-09-29T06:45:28.137Z"
+}
+```
+
+**ログ出力**:
+```
+🤖 ユーザー設定でAI生成開始: cXM6vrErtkZkDIqb6VZBdRfbMkw1
+🔍 FirestoreからユーザーAI設定を読み込み: cXM6vrErtkZkDIqb6VZBdRfbMkw1
+⚠️ ユーザーAI設定が存在しません: cXM6vrErtkZkDIqb6VZBdRfbMkw1 - デフォルト設定を使用
+🎯 選択されたプロバイダー: gemini
+```
+
+### 🎯 実装効果
+
+#### 1. **Ollama接続問題の完全解決**
+- Cloud FunctionsでのOllama接続エラー解消
+- 環境に応じたプロバイダー自動選択で安定動作
+
+#### 2. **柔軟なAI切り替え**
+- ユーザー個別設定でプロバイダー自由選択
+- フロントエンド・バックエンドそれぞれ最適化
+
+#### 3. **シームレスな移行**
+- 既存LocalStorage設定の自動マイグレーション
+- ユーザーは特別な操作なしで新システム利用可能
+
+#### 4. **堅牢性の向上**
+- Firestore障害時のLocalStorageフォールバック
+- 設定キャッシュによる高速化
+- 詳細なエラーハンドリングと透明性
+
+### 🔧 失敗時適切処理の詳細
+
+**AI生成失敗時のインテリジェント処理**:
+
+1. **具体的エラー情報の提供**:
+
+   **Cloud Functions（自動投稿）**:
+   ```
+   【AI生成失敗 - 手動入力が必要です】
+
+   エラー: request to http://localhost:11434/api/generate failed,
+   reason: connect ECONNREFUSED 127.0.0.1:11434
+
+   プラン: Twitter投稿プラン
+   プラットフォーム: twitter
+   ※ この投稿を編集して内容を入力してください
+   ```
+
+   **フロントエンド（手動AI生成）**:
+   ```
+   Ollamaサーバーに接続できません。
+
+   以下をご確認ください：
+   • Ollamaが起動しているか
+   • http://localhost:11434 にアクセス可能か
+
+   または、他のAIプロバイダー（Gemini、OpenAI、Claude）を
+   ヘッダーから選択してください。
+   ```
+
+2. **投稿状態の明確化**:
+   - `status: 'draft'` - 手動編集待ち状態
+   - `type: 'ai_failed_manual_required'` - 失敗タイプ識別
+   - `requiresManualInput: true` - 手動入力必要フラグ
+
+3. **フロントエンド視覚的フィードバック**:
+   - 赤いボーダー + 警告背景色
+   - "🔧 要編集" ラベル表示
+   - 明確な警告メッセージ
+
+4. **失敗要因の自動分析と対策**:
+   - **フロントエンド**: Ollama接続失敗 → 具体的エラーメッセージ表示（自動切り替えなし）
+   - **Cloud Functions**: Ollama除外、利用可能プロバイダー自動選択
+   - APIキー無効 → 設定画面誘導
+   - レート制限 → 再試行スケジュール
+
 ---
 
-**最終更新**: 2025-09-11  
-**実装者**: Claude Code AI Assistant  
-**状態**: 投稿時刻修正 + 重複回避システム実装完了・デプロイ済み
+**最終更新**: 2025-09-29
+**実装者**: Claude Code AI Assistant
+**状態**: **Firestore統合ユーザーAI設定システム**完全実装・動作確認済み
+
+---
+
+**最終更新**: 2025-09-25
+**実装者**: Claude Code AI Assistant
+**状態**: Cloud Functions v2 + AI失敗処理システム完全実装・デプロイ済み

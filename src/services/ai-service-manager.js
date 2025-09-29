@@ -52,8 +52,11 @@ const makeRequest = async (url, options) => {
 
 class AIServiceManager {
   constructor() {
-    this.currentProvider = 'ollama'; // デフォルト
-    
+    this.currentProvider = 'gemini'; // Firestore対応のためデフォルトをGeminiに変更
+    this.firebaseService = null;
+    this.isFirestoreEnabled = false;
+    this.userId = null;
+
     // Node.js環境でのfetch対応
     if (typeof fetch === 'undefined') {
       try {
@@ -63,25 +66,38 @@ class AIServiceManager {
         this.useHttps = true;
       }
     }
-    
+
     this.config = {
       ollama: {
         baseUrl: 'http://localhost:11434',
-        model: 'qwen2.5:0.5b'
+        model: 'qwen2.5:0.5b',
+        enabled: true,
+        cloudAvailable: false
       },
       openai: {
-        apiKey: null,
-        model: 'gpt-3.5-turbo'
+        apiKey: '',
+        model: 'gpt-3.5-turbo',
+        enabled: false,
+        cloudAvailable: true
       },
       claude: {
-        apiKey: null,
-        model: 'claude-3-haiku-20240307'
+        apiKey: '',
+        model: 'claude-3-haiku-20240307',
+        enabled: false,
+        cloudAvailable: true
       },
       gemini: {
-        apiKey: null,
-        model: 'gemini-1.5-flash'
+        apiKey: '',
+        model: 'gemini-pro',
+        enabled: false,
+        cloudAvailable: true
       }
     };
+
+    // ブラウザ環境でFirestore初期化
+    if (typeof window !== 'undefined') {
+      this.initializeFirestore();
+    }
   }
 
   /**
@@ -373,10 +389,172 @@ class AIServiceManager {
   }
 
   /**
-   * 設定を保存
+   * Firestore初期化
    */
-  saveConfig() {
-    // ブラウザ環境のみ
+  async initializeFirestore() {
+    try {
+
+      // Electron環境でのFirebaseサービスチェック
+      const fbService = (typeof firebaseService !== 'undefined' && firebaseService) ||
+                       (typeof window !== 'undefined' && window.firebaseService);
+
+      // Electron環境の場合は window.electronAPI 経由でFirestore使用
+      const hasElectronAPI = typeof window !== 'undefined' && window.electronAPI;
+
+      if (fbService) {
+        this.firebaseService = fbService;
+        this.isFirestoreEnabled = true;
+
+        // ユーザーがログインしているかチェック
+        if (fbService.currentUser) {
+          this.userId = fbService.currentUser.uid;
+
+          // Firestoreから読み込み
+          await this.loadConfigFromFirestore();
+        } else {
+          // ログインしていない場合でもFirestore優先設定を保持
+          // デフォルト設定のまま（Gemini有効）
+        }
+      } else if (hasElectronAPI) {
+        // Electron環境：electronAPI経由でFirestore使用
+        this.firebaseService = { electronAPI: window.electronAPI };
+        this.isFirestoreEnabled = true;
+        // Electron環境ではユーザー情報は別途管理される
+      } else {
+        console.log('⚠️ AIServiceManager: Firestore無効 - LocalStorageフォールバック');
+        this.loadConfigFromLocalStorage();
+      }
+    } catch (error) {
+      console.error('❌ Firestore初期化エラー:', error);
+      this.loadConfigFromLocalStorage();
+    }
+  }
+
+  /**
+   * ユーザーログイン時の設定更新
+   */
+  async onUserLogin(userId) {
+    this.userId = userId;
+
+    if (this.isFirestoreEnabled) {
+      // Firestoreから読み込み
+      await this.loadConfigFromFirestore();
+
+      // UIを更新
+      this.updateProviderSelect();
+    }
+  }
+
+  /**
+   * ユーザーログアウト時の設定クリア
+   */
+  onUserLogout() {
+    this.userId = null;
+    // デフォルト設定にリセット
+    this.currentProvider = 'gemini';
+    this.config = {
+      ollama: { baseUrl: 'http://localhost:11434', model: 'qwen2.5:0.5b', enabled: true, cloudAvailable: false },
+      openai: { apiKey: '', model: 'gpt-3.5-turbo', enabled: false, cloudAvailable: true },
+      claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true },
+      gemini: { apiKey: '', model: 'gemini-pro', enabled: false, cloudAvailable: true }
+    };
+  }
+
+  /**
+   * プロバイダー選択UIを更新
+   */
+  updateProviderSelect() {
+    const selectElement = document.getElementById('ai-provider-select');
+    if (selectElement) {
+      selectElement.value = this.currentProvider;
+    }
+  }
+
+
+  /**
+   * Firestoreから設定読み込み
+   */
+  async loadConfigFromFirestore() {
+    if (!this.isFirestoreEnabled || !this.userId || !this.firebaseService) {
+      return this.loadConfigFromLocalStorage();
+    }
+
+    try {
+      let result;
+
+      // Electron環境の場合はelectronAPI経由
+      if (this.firebaseService.electronAPI) {
+        result = await this.firebaseService.electronAPI.invoke('load-user-ai-config', {
+          userId: this.userId
+        });
+      } else {
+        // 直接Firebase使用
+        result = await this.firebaseService.loadUserAIConfig(this.userId);
+      }
+
+      if (result.success && result.config) {
+        this.currentProvider = result.config.defaultProvider || 'gemini';
+        this.config = { ...this.config, ...result.config.providers };
+      }
+    } catch (error) {
+      console.error('❌ Firestore読み込みエラー:', error);
+      this.loadConfigFromLocalStorage();
+    }
+  }
+
+  /**
+   * 統一設定保存メソッド
+   */
+  async saveConfig() {
+    if (this.isFirestoreEnabled && this.userId) {
+      await this.saveConfigToFirestore();
+    } else {
+      this.saveConfigToLocalStorage();
+    }
+  }
+
+  /**
+   * Firestoreに設定保存
+   */
+  async saveConfigToFirestore() {
+    if (!this.isFirestoreEnabled || !this.userId || !this.firebaseService) {
+      console.log('⚠️ Firestore無効 - LocalStorageに保存');
+      return this.saveConfigToLocalStorage();
+    }
+
+    try {
+      const firestoreConfig = {
+        defaultProvider: this.currentProvider,
+        providers: this.config
+      };
+
+      // Electron環境の場合はelectronAPI経由
+      if (this.firebaseService.electronAPI) {
+        const result = await this.firebaseService.electronAPI.invoke('save-user-ai-config', {
+          userId: this.userId,
+          config: firestoreConfig
+        });
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+      } else {
+        // 直接Firebase使用
+        const result = await this.firebaseService.saveUserAIConfig(this.userId, firestoreConfig);
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Firestore保存エラー:', error);
+      // フォールバック: LocalStorageに保存
+      this.saveConfigToLocalStorage();
+    }
+  }
+
+  /**
+   * LocalStorage保存（フォールバック）
+   */
+  saveConfigToLocalStorage() {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem('ai-service-config', JSON.stringify({
         currentProvider: this.currentProvider,
@@ -386,21 +564,21 @@ class AIServiceManager {
   }
 
   /**
-   * 設定を読み込み
+   * LocalStorage読み込み（フォールバック）
    */
-  loadConfig() {
+  loadConfigFromLocalStorage() {
     try {
       // ブラウザ環境のみ
       if (typeof localStorage !== 'undefined') {
         const saved = localStorage.getItem('ai-service-config');
         if (saved) {
           const data = JSON.parse(saved);
-          this.currentProvider = data.currentProvider || 'ollama';
+          this.currentProvider = data.currentProvider || 'gemini';
           this.config = { ...this.config, ...data.config };
         }
       }
     } catch (error) {
-      console.error('Failed to load AI config:', error);
+      console.error('❌ LocalStorage読み込みエラー:', error);
     }
   }
 }
@@ -408,8 +586,10 @@ class AIServiceManager {
 // シングルトンインスタンス
 const aiServiceManager = new AIServiceManager();
 
-// 設定を読み込み
-aiServiceManager.loadConfig();
+// Firestore初期化（ブラウザ環境でのみ実行）
+if (typeof window !== 'undefined') {
+  aiServiceManager.initializeFirestore();
+}
 
 // ブラウザ環境ではwindowオブジェクトにも追加
 if (typeof window !== 'undefined') {

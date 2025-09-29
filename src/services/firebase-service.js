@@ -1617,6 +1617,149 @@ class FirebaseService {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * ユーザーAI設定をFirestoreに保存
+   */
+  async saveUserAIConfig(userId, aiConfig) {
+    try {
+      if (!this.isInitialized || !this.db) {
+        throw new Error('Firebase が初期化されていません');
+      }
+
+      if (!userId) {
+        throw new Error('ユーザーIDが必要です');
+      }
+
+      const settingsRef = this.firebaseFirestore.doc(this.db, `users/${userId}/settings/aiConfig`);
+
+      const configToSave = {
+        ...aiConfig,
+        updatedAt: this.firebaseFirestore.serverTimestamp(),
+        createdAt: aiConfig.createdAt || this.firebaseFirestore.serverTimestamp()
+      };
+
+      await this.firebaseFirestore.setDoc(settingsRef, configToSave);
+
+      console.log('✅ ユーザーAI設定保存成功:', userId);
+      return { success: true };
+
+    } catch (error) {
+      console.error('❌ ユーザーAI設定保存エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * ユーザーAI設定をFirestoreから読み込み
+   */
+  async loadUserAIConfig(userId) {
+    try {
+      if (!this.isInitialized || !this.db) {
+        throw new Error('Firebase が初期化されていません');
+      }
+
+      if (!userId) {
+        throw new Error('ユーザーIDが必要です');
+      }
+
+      const settingsRef = this.firebaseFirestore.doc(this.db, `users/${userId}/settings/aiConfig`);
+      const settingsDoc = await this.firebaseFirestore.getDoc(settingsRef);
+
+      if (!settingsDoc.exists()) {
+        console.log('ℹ️ ユーザーAI設定が存在しません - デフォルト設定を返します:', userId);
+
+        // デフォルト設定を返す
+        const defaultConfig = {
+          defaultProvider: 'gemini',
+          providers: {
+            ollama: {
+              enabled: true,
+              baseUrl: 'http://localhost:11434',
+              model: 'qwen2.5:0.5b',
+              cloudAvailable: false
+            },
+            openai: {
+              enabled: false,
+              apiKey: '',
+              model: 'gpt-3.5-turbo',
+              cloudAvailable: true
+            },
+            claude: {
+              enabled: false,
+              apiKey: '',
+              model: 'claude-3-haiku-20240307',
+              cloudAvailable: true
+            },
+            gemini: {
+              enabled: false,
+              apiKey: '',
+              model: 'gemini-pro',
+              cloudAvailable: true
+            }
+          }
+        };
+
+        return { success: true, config: defaultConfig };
+      }
+
+      const configData = settingsDoc.data();
+      console.log('✅ ユーザーAI設定読み込み成功:', userId);
+
+      return { success: true, config: configData };
+
+    } catch (error) {
+      console.error('❌ ユーザーAI設定読み込みエラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * LocalStorageからFirestoreへのAI設定マイグレーション
+   */
+  async migrateAIConfigFromLocalStorage(userId) {
+    try {
+      // LocalStorageから設定を読み込み
+      const localConfig = localStorage.getItem('ai-service-config');
+      if (!localConfig) {
+        console.log('ℹ️ LocalStorageにAI設定が見つかりません');
+        return { success: true, migrated: false };
+      }
+
+      const parsedConfig = JSON.parse(localConfig);
+
+      // Firestore形式に変換
+      const firestoreConfig = {
+        defaultProvider: parsedConfig.currentProvider || 'gemini',
+        providers: {}
+      };
+
+      // 既存の設定を新形式に変換
+      if (parsedConfig.config) {
+        Object.keys(parsedConfig.config).forEach(provider => {
+          firestoreConfig.providers[provider] = {
+            ...parsedConfig.config[provider],
+            enabled: true,
+            cloudAvailable: provider !== 'ollama'
+          };
+        });
+      }
+
+      // Firestoreに保存
+      const saveResult = await this.saveUserAIConfig(userId, firestoreConfig);
+
+      if (saveResult.success) {
+        console.log('✅ AI設定マイグレーション成功:', userId);
+        return { success: true, migrated: true };
+      } else {
+        throw new Error(saveResult.error);
+      }
+
+    } catch (error) {
+      console.error('❌ AI設定マイグレーションエラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 // シングルトンインスタンス
