@@ -16,7 +16,7 @@ const db = admin.firestore();
  * cron: 毎日9時に実行 ('0 9 * * *')
  * 3日後が投稿予定日のプランの投稿を生成
  */
-exports.processAutoPostsScheduledV2 = onSchedule({
+exports.processAutoPostsScheduled = onSchedule({
   schedule: '0 9 * * *',
   timeZone: 'Asia/Tokyo',
   memory: '1GiB',
@@ -47,7 +47,7 @@ exports.processAutoPostsScheduledV2 = onSchedule({
  * 手動自動投稿処理トリガー
  * HTTPリクエストで手動実行可能
  */
-exports.processAutoPostsManualV2 = onRequest({
+exports.processAutoPostsManual = onRequest({
   memory: '1GiB',
   timeoutSeconds: 540,
   minInstances: 0,
@@ -489,10 +489,10 @@ async function generateAIContent(projectData, planData, userId, projectId, planI
     console.log('📜 過去投稿数:', recentPosts.length);
     console.log('🧠 学習データ:', conversationLearning ? '有り' : '無し');
 
-    const result = await aiServiceManager.generateText(prompt, {
+    const result = await aiServiceManager.generateTextWithUserConfig(prompt, {
       maxTokens: 400,
       temperature: 0.8 // 少し高めでバリエーション促進
-    });
+    }, userId);
 
     if (result.success) {
       console.log(`✅ AI投稿生成成功 (${result.provider}): ${result.content.substring(0, 50)}...`);

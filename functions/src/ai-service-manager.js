@@ -4,28 +4,35 @@
  */
 
 const fetch = require('node-fetch');
+const admin = require('firebase-admin');
 
 class AIServiceManager {
   constructor() {
-    this.currentProvider = 'ollama'; // デフォルト
+    this.currentProvider = 'gemini'; // Cloud FunctionsではGeminiをデフォルト
     this.config = {
       ollama: {
         baseUrl: 'http://localhost:11434',
-        model: 'qwen2.5:0.5b'
+        model: 'qwen2.5:0.5b',
+        cloudAvailable: false
       },
       openai: {
         apiKey: process.env.OPENAI_API_KEY,
-        model: 'gpt-3.5-turbo'
+        model: 'gpt-3.5-turbo',
+        cloudAvailable: true
       },
       claude: {
         apiKey: process.env.CLAUDE_API_KEY,
-        model: 'claude-3-haiku-20240307'
+        model: 'claude-3-haiku-20240307',
+        cloudAvailable: true
       },
       gemini: {
         apiKey: process.env.GEMINI_API_KEY,
-        model: 'gemini-pro'
+        model: 'gemini-pro',
+        cloudAvailable: true
       }
     };
+    this.db = admin.firestore();
+    this.userConfigs = new Map(); // ユーザー設定キャッシュ
   }
 
   /**
@@ -269,6 +276,163 @@ class AIServiceManager {
         error: error.message,
         provider: 'gemini'
       };
+    }
+  }
+
+  /**
+   * Firestoreからユーザーの AI設定を読み込み
+   */
+  async loadUserAIConfig(userId) {
+    try {
+      // キャッシュをチェック
+      if (this.userConfigs.has(userId)) {
+        console.log(`🔍 ユーザーAI設定をキャッシュから取得: ${userId}`);
+        return this.userConfigs.get(userId);
+      }
+
+      console.log(`🔍 FirestoreからユーザーAI設定を読み込み: ${userId}`);
+      const configRef = this.db.doc(`users/${userId}/settings/aiConfig`);
+      const configDoc = await configRef.get();
+
+      if (!configDoc.exists) {
+        console.log(`⚠️ ユーザーAI設定が存在しません: ${userId} - デフォルト設定を使用`);
+
+        // デフォルト設定を返す
+        const defaultConfig = {
+          defaultProvider: 'gemini',
+          providers: {
+            gemini: {
+              enabled: true,
+              apiKey: '', // 環境変数を使用
+              model: 'gemini-pro',
+              cloudAvailable: true
+            }
+          }
+        };
+
+        this.userConfigs.set(userId, defaultConfig);
+        return defaultConfig;
+      }
+
+      const userConfig = configDoc.data();
+      console.log(`✅ ユーザーAI設定読み込み成功: ${userId}, プロバイダー: ${userConfig.defaultProvider}`);
+
+      // キャッシュに保存
+      this.userConfigs.set(userId, userConfig);
+      return userConfig;
+
+    } catch (error) {
+      console.error(`❌ ユーザーAI設定読み込みエラー (${userId}):`, error);
+
+      // エラー時はデフォルト設定を返す
+      const defaultConfig = {
+        defaultProvider: 'gemini',
+        providers: {
+          gemini: {
+            enabled: true,
+            apiKey: '',
+            model: 'gemini-pro',
+            cloudAvailable: true
+          }
+        }
+      };
+
+      return defaultConfig;
+    }
+  }
+
+  /**
+   * Cloud Functions用のプロバイダー選択
+   * Ollamaなど、Cloud Functionsでアクセスできないプロバイダーを自動で除外
+   */
+  selectBestProviderForCloudFunctions(userConfig) {
+    const availableProviders = Object.keys(userConfig.providers || {})
+      .filter(provider => {
+        const config = userConfig.providers[provider];
+        return config.enabled &&
+               config.cloudAvailable !== false &&
+               provider !== 'ollama'; // Ollamaは除外
+      });
+
+    if (availableProviders.length === 0) {
+      console.log('⚠️ 利用可能なAIプロバイダーがありません - デフォルトでGeminiを使用');
+      return 'gemini';
+    }
+
+    // デフォルトプロバイダーが利用可能ならそれを使用
+    if (availableProviders.includes(userConfig.defaultProvider)) {
+      return userConfig.defaultProvider;
+    }
+
+    // そうでなければ最初の利用可能なプロバイダーを使用
+    return availableProviders[0];
+  }
+
+  /**
+   * ユーザー設定を使用してテキスト生成
+   */
+  async generateTextWithUserConfig(prompt, options = {}, userId) {
+    try {
+      console.log(`🤖 ユーザー設定でAI生成開始: ${userId}`);
+
+      // ユーザー設定を読み込み
+      const userConfig = await this.loadUserAIConfig(userId);
+
+      // Cloud Functions用の最適なプロバイダーを選択
+      const selectedProvider = this.selectBestProviderForCloudFunctions(userConfig);
+      console.log(`🎯 選択されたプロバイダー: ${selectedProvider}`);
+
+      // プロバイダー設定を取得
+      const providerConfig = userConfig.providers[selectedProvider];
+
+      // 一時的に設定を更新
+      const originalProvider = this.currentProvider;
+      const originalConfig = { ...this.config };
+
+      this.currentProvider = selectedProvider;
+
+      // ユーザーのAPIキーが設定されている場合は使用
+      if (providerConfig && providerConfig.apiKey) {
+        this.config[selectedProvider] = {
+          ...this.config[selectedProvider],
+          ...providerConfig
+        };
+      }
+
+      // AI生成実行
+      const result = await this.generateText(prompt, {
+        ...options,
+        provider: selectedProvider
+      });
+
+      // 設定を元に戻す
+      this.currentProvider = originalProvider;
+      this.config = originalConfig;
+
+      console.log(`${result.success ? '✅' : '❌'} ユーザー設定AI生成結果: ${userId}, ${selectedProvider}, ${result.success ? '成功' : result.error}`);
+
+      return result;
+
+    } catch (error) {
+      console.error(`❌ ユーザー設定AI生成エラー (${userId}):`, error);
+      return {
+        success: false,
+        error: error.message,
+        provider: 'unknown'
+      };
+    }
+  }
+
+  /**
+   * ユーザー設定キャッシュをクリア
+   */
+  clearUserConfigCache(userId = null) {
+    if (userId) {
+      this.userConfigs.delete(userId);
+      console.log(`🗑️ ユーザー設定キャッシュをクリア: ${userId}`);
+    } else {
+      this.userConfigs.clear();
+      console.log('🗑️ 全ユーザー設定キャッシュをクリア');
     }
   }
 }

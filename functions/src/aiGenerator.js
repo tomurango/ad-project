@@ -2,9 +2,7 @@ const fetch = require("node-fetch");
 const functions = require("firebase-functions");
 
 // Ollama API のエンドポイント（環境変数で設定可能）
-const OLLAMA_BASE_URL = (functions.config().ollama && functions.config().ollama.url) || 
-  process.env.OLLAMA_URL || 
-  "http://localhost:11434";
+const OLLAMA_BASE_URL = process.env.OLLAMA_URL || "http://localhost:11434";
 
 /**
  * Ollama API を使用してツイート内容を生成

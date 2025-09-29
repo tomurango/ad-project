@@ -2,8 +2,7 @@ const crypto = require("crypto");
 const functions = require("firebase-functions");
 
 // 環境変数から暗号化キーを取得
-const ENCRYPTION_KEY = (functions.config().encryption && functions.config().encryption.key) || 
-  process.env.ENCRYPTION_KEY || 
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY ||
   "your-32-char-secret-key-here-change-this"; // 開発用デフォルト
 
 const ALGORITHM = "aes-256-cbc";
