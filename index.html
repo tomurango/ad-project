@@ -3852,16 +3852,6 @@
 
     // プラットフォーム選択時の視覚的フィードバック
 
-    // AI自動生成設定の表示切り替え
-    document.addEventListener('DOMContentLoaded', function() {
-      const aiSettings = document.getElementById('ai-settings');
-      
-      if (aiAutoGenerate && aiSettings) {
-        aiAutoGenerate.addEventListener('change', function() {
-          aiSettings.style.display = this.checked ? 'block' : 'none';
-        });
-      }
-    });
 
     // プラン編集
     async function editPlan(planId) {
