@@ -1749,8 +1749,7 @@
         // プロジェクト一覧を更新
         refreshProjectList();
         
-        console.log('✅ プロジェクト一覧メイン画面表示');
-      } else {
+        } else {
         console.error('❌ プロジェクト一覧セクションが見つかりません');
       }
     }
@@ -1954,7 +1953,6 @@
     // アプリケーション初期化
     document.addEventListener('DOMContentLoaded', () => {
 
-      console.log('✅ 広告配信プラットフォーム読み込み完了');
       
       // Firebase Authentication 初期化（メイン処理）
       initializeAuth();
@@ -2179,7 +2177,6 @@
         const result = await window.electronAPI.invoke('get-tweet-history');
         if (result.success) {
           updateTweetHistoryUI(result.tweets);
-          console.log('✅ ツイート履歴更新成功:', result.tweets.length, '件');
         } else {
           console.error('❌ ツイート履歴取得失敗:', result.error);
         }
@@ -2270,7 +2267,6 @@
             candidatesDiv.style.display = 'block';
           }
           
-          console.log('✅ ディレクトリ選択とプロジェクト検出完了');
         } else if (result.canceled) {
           console.log('📁 ディレクトリ選択がキャンセルされました');
           // キャンセル時は何もしない（ユーザーの意図的な操作）
@@ -2300,7 +2296,6 @@
         if (result.success) {
           console.log('検出されたプロジェクト:', result.projects);
           displayProjectCandidates(result.projects);
-          console.log('✅ プロジェクト検出成功:', result.projects?.length || 0, '件');
         } else {
           console.error('❌ プロジェクト検出失敗:', result);
           alert(`❌ プロジェクト検出エラー: ${result.error}`);
@@ -2367,7 +2362,6 @@
       // AI説明を自動生成
       generateAIDescription();
       
-      console.log('✅ プロジェクト候補選択完了:', { path, name });
       
       // 成功メッセージ（アラートではなく、より自然な表示）
       const messageDiv = document.createElement('div');
@@ -2453,7 +2447,6 @@
           // AI説明を自動生成
           generateAIDescription();
           
-          console.log('✅ プロジェクトディレクトリ設定完了:', result.path);
         } else if (result.canceled) {
           console.log('📂 プロジェクトディレクトリ選択がキャンセルされました');
           // キャンセル時は何もしない（ユーザーの意図的な操作）
@@ -2512,7 +2505,6 @@
           descriptionField.style.fontStyle = 'normal';
           descriptionField.disabled = false;
           
-          console.log('✅ AI説明生成完了');
         } else {
           // エラー時の状態復元
           descriptionField.value = originalDescription;
@@ -2605,7 +2597,6 @@
         if (result.success) {
           const projects = result.projects || [];
           displayProjectList(projects);
-          console.log('✅ Firestoreプロジェクト一覧更新成功:', projects.length, '件');
         } else {
           console.error('❌ Firestoreプロジェクト一覧取得失敗:', result.error);
           displayProjectList([]);
@@ -3705,7 +3696,6 @@
         const result = await window.electronAPI.invoke('create-plan', planData);
         
         if (result.success) {
-          console.log('✅ プラン作成成功:', result.id);
           
           // モーダルを閉じる
           closePlanCreationModal();
@@ -3876,7 +3866,6 @@
     // プラン編集
     async function editPlan(planId) {
       try {
-        console.log('🔧 プラン編集開始:', planId);
         
         if (!currentProjectId || !planId) {
           alert('プロジェクトまたはプランが選択されていません');
@@ -3915,7 +3904,6 @@
         const result = await window.electronAPI.invoke('delete-plan', planId);
 
         if (result.success) {
-          console.log('✅ プラン削除成功:', planId);
           // プラン一覧を再読み込み
           await loadProjectPlans(currentProjectId);
           alert('プランを削除しました');
@@ -4000,7 +3988,6 @@
         const result = await window.electronAPI.invoke('create-post', postData);
 
         if (result.success) {
-          console.log('✅ 投稿作成成功:', result.id);
           // 投稿一覧を再読み込み
           await loadProjectPosts(currentProjectId);
           alert('投稿を予約しました！');
@@ -4060,7 +4047,6 @@
         });
 
         if (result.success) {
-          console.log('✅ 投稿編集成功:', postId);
           // 投稿一覧を再読み込み
           await loadProjectPosts(currentProjectId);
           alert('投稿を更新しました！');
@@ -4088,7 +4074,6 @@
         });
 
         if (result.success) {
-          console.log('✅ 投稿削除成功:', postId);
           // 投稿一覧を再読み込み
           await loadProjectPosts(currentProjectId);
           alert('投稿を削除しました');
@@ -4599,7 +4584,6 @@
           displayDiv.innerHTML = result.aiSummary;
           displayDiv.style.fontStyle = 'normal';
           displayDiv.style.color = '#495057';
-          console.log('✅ AI要約生成完了');
         } else {
           displayDiv.innerHTML = `<div style="color: #dc3545;">❌ AI要約生成エラー: ${result.error}</div>`;
           console.error('❌ AI要約生成エラー:', result.error);
@@ -4670,7 +4654,6 @@
           // 編集モードを終了
           cancelAISummaryEdit();
 
-          console.log('✅ AI要約保存完了');
           alert('✅ AI要約を更新しました！');
         } else {
           alert(`❌ AI要約更新エラー: ${result.error}`);
@@ -4999,7 +4982,6 @@
           if (statusElement) {
             statusElement.innerHTML = '<span style="color: #28a745;">✅ 接続成功</span>';
           }
-          console.log('✅ Firebase 接続確認成功');
         } else {
           if (statusElement) {
             statusElement.innerHTML = '<span style="color: #dc3545;">❌ 接続失敗</span>';
@@ -5452,7 +5434,6 @@
         });
 
         if (result.success) {
-          console.log('✅ 手動自動投稿生成成功:', result.postId);
           
           // 投稿一覧を再読み込み
           await loadProjectPosts(currentProjectId);
@@ -5610,7 +5591,6 @@
         const result = await window.electronAPI.invoke('test-cloud-function', 'processAutoPostsManual');
         
         if (result.success) {
-          console.log('✅ Cloud Function実行成功:', result);
         } else {
           console.log('❌ Cloud Function実行失敗:', result);
         }
@@ -5627,7 +5607,6 @@
       }
 
       try {
-        console.log('🔧 planデータ修正中...');
         const result = await window.electronAPI.invoke('firebase-get-project-plans', currentProjectId);
         
         if (result.success && result.plans) {
@@ -5750,7 +5729,6 @@
         });
 
         if (updateResult.success) {
-          console.log('✅ plan時刻更新成功');
           
           // 5分待つか、手動でCloud Functionを再実行してもらう
           console.log('⏰ 5分後にCloud Functionが自動実行されるか、手動で testAutoPostProcessor() を実行してください');
@@ -5865,7 +5843,6 @@
         }
         
         // メインプロセスに初期設定を同期は一旦削除
-        console.log('🔧 AI Manager初期化完了（設定同期はスキップ）');
         
         console.log('🤖 AI Service Manager initialized:', currentProvider);
       } catch (error) {
@@ -5958,7 +5935,6 @@
 
             const result = await this.firebaseService.saveUserAIConfig(this.userId, firestoreConfig);
             if (result.success) {
-              console.log('✅ AI設定をFirestoreに保存しました');
             } else {
               throw new Error(result.error);
             }
@@ -5980,7 +5956,6 @@
             if (result.success && result.config) {
               this.currentProvider = result.config.defaultProvider || 'gemini';
               this.config = { ...this.config, ...result.config.providers };
-              console.log('✅ AI設定をFirestoreから読み込みました');
             } else {
               console.log('ℹ️ Firestore設定なし - デフォルト設定を使用');
             }
@@ -5999,7 +5974,6 @@
           try {
             const result = await this.firebaseService.migrateAIConfigFromLocalStorage(this.userId);
             if (result.success && result.migrated) {
-              console.log('✅ LocalStorageからFirestoreへマイグレーション完了');
               // LocalStorageの古い設定を削除
               localStorage.removeItem('ai-service-config');
             }
@@ -6134,7 +6108,6 @@
             this.currentProvider = 'gemini';
             this.updateProviderSelect();
 
-            console.log('✅ フォールバック版 - ログイン処理完了');
           } catch (error) {
             console.error('❌ フォールバック版 - ログイン処理エラー:', error);
           }
@@ -6201,7 +6174,6 @@
             }
             
             // 設定画面を開く
-            console.log('🔧 設定画面を開きます:', newProvider);
             try {
               openAIConfig(newProvider);
             } catch (error) {
@@ -6218,12 +6190,10 @@
         aiServiceManager.saveConfig();
         
         // メインプロセス設定同期は一旦削除
-        console.log('🔧 プロバイダー変更完了（設定同期はスキップ）:', newProvider);
         
         // 通知表示
         showNotification(`🤖 AIプロバイダーを${aiServiceManager.getProviderDisplayName(newProvider)}に変更しました`, 'success');
         
-        console.log('✅ AI Provider changed to:', newProvider);
         
       } catch (error) {
         console.error('❌ AI Provider change failed:', error);
@@ -6235,8 +6205,6 @@
 
     // AI設定画面を開く
     function openAIConfig(targetProvider = null) {
-      console.log('🔧 openAIConfig 呼び出し:', targetProvider);
-      console.log('🔧 aiServiceManager存在:', !!aiServiceManager);
       
       if (!aiServiceManager) {
         console.error('❌ aiServiceManager が初期化されていません');
@@ -6245,37 +6213,29 @@
       }
       
       const modal = document.getElementById('ai-config-modal');
-      console.log('🔧 既存モーダル:', !!modal);
       
       if (!modal) {
-        console.log('🔧 モーダルを作成中...');
         createAIConfigModal();
         // モーダル作成後に再帰的に呼び出し
         setTimeout(() => {
-          console.log('🔧 モーダル作成後の再呼び出し');
           openAIConfig(targetProvider);
         }, 100);
         return;
       }
       
-      console.log('🔧 モーダル設定を更新中...');
       // 現在の設定を表示
       updateAIConfigModal(targetProvider);
       
-      console.log('🔧 モーダル表示中...');
       // モーダルを表示
       modal.style.display = 'block';
-      console.log('✅ モーダル表示完了');
     }
 
     // AI設定モーダルを作成
     function createAIConfigModal() {
-      console.log('🔧 createAIConfigModal 開始');
       
       // 既存のモーダルがあれば削除
       const existingModal = document.getElementById('ai-config-modal');
       if (existingModal) {
-        console.log('🔧 既存モーダルを削除');
         existingModal.remove();
       }
       
@@ -6319,7 +6279,6 @@
       });
       
       document.body.appendChild(modal);
-      console.log('✅ モーダル作成完了:', modal.id);
     }
 
     // AI設定モーダルの内容を更新
@@ -6378,7 +6337,9 @@
               <h4 style="margin-top: 0; color: #1da1f2;">OpenAI設定 💰</h4>
               <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
                 <strong>⚠️ 有料サービス</strong><br>
-                • <a href="https://platform.openai.com/signup" target="_blank">OpenAIアカウント作成</a><br>
+                • <strong>アカウント作成:</strong><br>
+                  <code style="background: #f1f3f4; padding: 2px 6px; border-radius: 3px; font-size: 12px; user-select: all; cursor: text;" title="クリックして選択、Ctrl+Cでコピー">https://platform.openai.com/signup</code><br>
+                  <small style="color: #666;">💡 URLをコピーしてブラウザで開いてください</small><br>
                 • APIキーの取得が必要<br>
                 • 使用量に応じて課金されます
               </div>
@@ -6406,7 +6367,9 @@
               <h4 style="margin-top: 0; color: #1da1f2;">Claude設定 💰</h4>
               <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
                 <strong>⚠️ 有料サービス</strong><br>
-                • <a href="https://console.anthropic.com/" target="_blank">Anthropicアカウント作成</a><br>
+                • <strong>アカウント作成:</strong><br>
+                  <code style="background: #f1f3f4; padding: 2px 6px; border-radius: 3px; font-size: 12px; user-select: all; cursor: text;" title="クリックして選択、Ctrl+Cでコピー">https://console.anthropic.com/</code><br>
+                  <small style="color: #666;">💡 URLをコピーしてブラウザで開いてください</small><br>
                 • APIキーの取得が必要<br>
                 • 使用量に応じて課金されます
               </div>
@@ -6434,7 +6397,9 @@
               <h4 style="margin-top: 0; color: #1da1f2;">Gemini設定 💰</h4>
               <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
                 <strong>⚠️ 有料サービス</strong><br>
-                • <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI StudioでAPIキー取得</a><br>
+                • <strong>APIキー取得:</strong><br>
+                  <code style="background: #f1f3f4; padding: 2px 6px; border-radius: 3px; font-size: 12px; user-select: all; cursor: text;" title="クリックして選択、Ctrl+Cでコピー">https://aistudio.google.com/app/apikey</code><br>
+                  <small style="color: #666;">💡 URLをコピーしてブラウザで開いてください</small><br>
                 • 無料枠あり（月60リクエスト/分）<br>
                 • 超過分は使用量に応じて課金
               </div>
@@ -6500,7 +6465,6 @@
         aiServiceManager.saveConfig();
         
         // メインプロセス設定同期は一旦削除
-        console.log('🔧 設定保存完了（設定同期はスキップ）:', provider);
         
         // UI更新
         const selectElement = document.getElementById('ai-provider-select');
@@ -6593,7 +6557,6 @@
         await initializeAIManagerFallback();
       }
 
-      console.log('✅ AIServiceManager準備完了:', !!window.aiServiceManager);
     });
   </script>
 
@@ -7539,7 +7502,6 @@ Claude Codeのような自然で親しみやすい口調で以下を含めて回
           };
         }
 
-        console.log('✅ 意図解析完了:', intentData);
         return {
           success: true,
           intent: intentData,
@@ -7600,7 +7562,6 @@ Claude Codeのような自然で親しみやすい口調で以下を含めて回
         // 実行履歴をログ記録
         await logIntentExecution(intentResult, results);
 
-        console.log('✅ 意図ベース実行処理完了:', results);
         return {
           success: true,
           results: results,
@@ -7853,7 +7814,6 @@ ${conversationInsights.length > 0 ? conversationInsights.join('\n') : '特にな
           currentProjectId, result.text);
 
         if (updateResult.success) {
-          console.log('✅ AI要約自動更新完了');
 
           // UI上の表示も更新（編集モーダルが開いている場合）
           const aiSummaryDisplay = document.getElementById('aiSummaryDisplay');
@@ -7945,7 +7905,6 @@ ${conversationInsights.length > 0 ? conversationInsights.join('\n') : '特にな
         );
         
         if (result.success) {
-          console.log('✅ Plan.customPrompt保存成功');
         } else {
           console.error('❌ Plan.customPrompt保存失敗:', result.error);
         }
@@ -7991,7 +7950,6 @@ ${conversationInsights.length > 0 ? conversationInsights.join('\n') : '特にな
         // 投稿プレビューを更新
         await refreshPostPreview();
 
-        console.log('✅ 2段階AIチャット処理完了');
         return {
           success: true,
           intent: intentResult.intent,
@@ -8505,7 +8463,6 @@ ${conversationInsights.length > 0 ? conversationInsights.join('\n') : '特にな
         return;
       }
 
-      console.log('✅ 複数確認アクション実行:', selectedActions);
 
       // ボタンUIを削除
       removeConfirmationOptions();
@@ -8642,11 +8599,6 @@ ${conversationInsights.length > 0 ? conversationInsights.join('\n') : '特にな
 
         addAssistantMessage(responseMessage);
 
-        console.log('✅ 複数確認処理完了:', {
-          selectedActions,
-          results: allResults,
-          success: failedActions.length === 0
-        });
 
       } catch (error) {
         console.error('❌ 複数確認処理実行エラー:', error);
@@ -8783,11 +8735,6 @@ ${conversationInsights.length > 0 ? conversationInsights.join('\n') : '特にな
           await logIntentExecution({ intent: intent.intent }, results);
         }
 
-        console.log('✅ 確認処理完了:', {
-          actionType,
-          results,
-          success: results.length === 0 || results.every(r => r.success)
-        });
 
       } catch (error) {
         console.error('❌ 確認処理実行エラー:', error);
@@ -8804,7 +8751,6 @@ ${conversationInsights.length > 0 ? conversationInsights.join('\n') : '特にな
 
           const actionTypes = parseNaturalConfirmation(userInput);
           if (actionTypes && actionTypes.length > 0) {
-            console.log('✅ 自然言語応答を解析:', actionTypes);
 
             // ボタンUIを削除（もしあれば）
             removeConfirmationOptions();
@@ -8941,7 +8887,6 @@ ${conversationInsights.length > 0 ? conversationInsights.join('\n') : '特にな
         const result = await window.electronAPI.invoke('save-conversation', conversationData);
 
         if (result.success) {
-          console.log('✅ 会話記録保存成功:', result.conversationId);
         } else {
           console.error('❌ 会話記録保存失敗:', result.error);
         }
@@ -10005,7 +9950,6 @@ ${editInstruction}
         const result = await window.electronAPI.invoke('firebase-update-plan', currentProjectId, planId, updateData);
         
         if (result.success) {
-          console.log('✅ プラン更新成功');
           closePlanEditModal();
           // プラン一覧を再読み込み
           await loadProjectPlans(currentProjectId);
