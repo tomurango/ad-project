@@ -446,21 +446,31 @@ async function getRecentPosts(userId, projectId, planId, limit = 5) {
       .doc(planId)
       .collection('posts')
       .orderBy('createdAt', 'desc')
-      .limit(limit)
+      .limit(limit * 2) // 失敗投稿除外のため多めに取得
       .get();
 
     if (postsSnapshot.empty) {
       return [];
     }
 
-    const posts = postsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      content: doc.data().content,
-      createdAt: doc.data().createdAt,
-      platform: doc.data().platform
-    }));
+    // AI生成失敗の投稿を除外し、成功した投稿のみ取得
+    const posts = postsSnapshot.docs
+      .filter(doc => {
+        const data = doc.data();
+        // AI生成失敗の投稿を除外
+        return data.type !== 'ai_failed_manual_required' &&
+               !data.aiGenerationFailed &&
+               !data.content.startsWith('【AI生成失敗');
+      })
+      .slice(0, limit) // 指定件数に制限
+      .map(doc => ({
+        id: doc.id,
+        content: doc.data().content,
+        createdAt: doc.data().createdAt,
+        platform: doc.data().platform
+      }));
 
-    console.log(`📋 過去の投稿履歴: ${posts.length}件を取得`);
+    console.log(`📋 過去の投稿履歴: ${posts.length}件を取得（失敗投稿除外済み）`);
     return posts;
 
   } catch (error) {
@@ -680,20 +690,27 @@ function buildEnhancedPrompt(projectData, planData, recentPosts, conversationLea
   // 投稿スタイルのバリエーション指示
   const styleVariations = [
     '開発進捗を報告するスタイル',
-    'ユーザー価値にフォーカスしたスタイル', 
+    'ユーザー価値にフォーカスしたスタイル',
     '技術的な学びを共有するスタイル',
     'プロジェクトの背景や想いを伝えるスタイル',
     '未来への展望を語るスタイル'
   ];
-  
+
   const randomStyle = styleVariations[Math.floor(Math.random() * styleVariations.length)];
   prompt += `【今回のスタイル】: ${randomStyle}\n\n`;
 
-  // プラットフォーム別の最終指示
+  // プラットフォーム別の最終指示（明確に投稿本文のみを要求）
+  prompt += `【重要な出力形式】\n`;
   if (planData.platform === 'twitter') {
-    prompt += 'ハッシュタグも含めて280文字以内で作成してください。';
+    prompt += `- Twitter投稿の本文のみを出力してください\n`;
+    prompt += `- 「承知しました」「投稿プラン」「投稿案」などの前置きや説明は不要です\n`;
+    prompt += `- ハッシュタグを含めて280文字以内に収めてください\n`;
+    prompt += `- 投稿本文そのものだけを1つ生成してください\n`;
   } else {
-    prompt += 'ハッシュタグも含めてください。';
+    prompt += `- ${planData.platform}投稿の本文のみを出力してください\n`;
+    prompt += `- 「承知しました」「投稿プラン」「投稿案」などの前置きや説明は不要です\n`;
+    prompt += `- ハッシュタグを含めて適切な長さで作成してください\n`;
+    prompt += `- 投稿本文そのものだけを1つ生成してください\n`;
   }
 
   return prompt;
