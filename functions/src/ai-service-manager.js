@@ -16,18 +16,18 @@ class AIServiceManager {
         cloudAvailable: false
       },
       openai: {
-        apiKey: process.env.OPENAI_API_KEY,
+        apiKey: '', // Firestoreから読み込む
         model: 'gpt-3.5-turbo',
         cloudAvailable: true
       },
       claude: {
-        apiKey: process.env.CLAUDE_API_KEY,
+        apiKey: '', // Firestoreから読み込む
         model: 'claude-3-haiku-20240307',
         cloudAvailable: true
       },
       gemini: {
-        apiKey: process.env.GEMINI_API_KEY,
-        model: 'gemini-pro',
+        apiKey: '', // Firestoreから読み込む
+        model: 'gemini-2.0-flash', // 2.0安定版を使用（2.5はプレビュー）
         cloudAvailable: true
       }
     };
@@ -242,7 +242,12 @@ class AIServiceManager {
         throw new Error('Gemini API key not configured');
       }
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${options.model || config.model}:generateContent?key=${config.apiKey}`, {
+      const model = options.model || config.model;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.apiKey}`;
+
+      console.log(`🔧 Gemini API呼び出し - Model: ${model}, APIキー: ${config.apiKey ? config.apiKey.substring(0, 10) + '...' : 'なし'}`);
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -258,11 +263,29 @@ class AIServiceManager {
         }),
       });
 
+      console.log(`📡 Gemini APIレスポンス - Status: ${response.status}`);
+
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        const errorBody = await response.text();
+        console.error(`❌ Gemini APIエラーレスポンス: ${errorBody}`);
+        throw new Error(`Gemini API error: ${response.status} - ${errorBody}`);
       }
 
       const data = await response.json();
+
+      console.log(`📦 Gemini APIレスポンス構造: ${JSON.stringify(data, null, 2)}`);
+
+      // レスポンス構造のチェック
+      if (!data.candidates || !data.candidates[0]) {
+        console.error('❌ Gemini API: candidates が存在しません');
+        throw new Error(`Gemini API: Invalid response structure - ${JSON.stringify(data)}`);
+      }
+
+      if (!data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+        console.error('❌ Gemini API: content.parts が存在しません');
+        throw new Error(`Gemini API: Invalid content structure - ${JSON.stringify(data.candidates[0])}`);
+      }
+
       return {
         success: true,
         content: data.candidates[0].content.parts[0].text,
@@ -304,7 +327,7 @@ class AIServiceManager {
             gemini: {
               enabled: true,
               apiKey: '', // 環境変数を使用
-              model: 'gemini-pro',
+              model: 'gemini-2.0-flash',
               cloudAvailable: true
             }
           }
@@ -316,6 +339,28 @@ class AIServiceManager {
 
       const userConfig = configDoc.data();
       console.log(`✅ ユーザーAI設定読み込み成功: ${userId}, プロバイダー: ${userConfig.defaultProvider}`);
+
+      // 古いGeminiモデル名を自動修正
+      let needsUpdate = false;
+      if (userConfig.providers && userConfig.providers.gemini) {
+        const oldModel = userConfig.providers.gemini.model;
+        const unsupportedModels = ['gemini-pro', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash-latest', 'gemini-2.5-flash'];
+        if (unsupportedModels.includes(oldModel)) {
+          userConfig.providers.gemini.model = 'gemini-2.0-flash';
+          needsUpdate = true;
+          console.log(`🔄 Geminiモデルを自動更新: ${oldModel} → gemini-2.0-flash`);
+        }
+      }
+
+      // 設定が更新された場合はFirestoreに保存
+      if (needsUpdate) {
+        try {
+          await configRef.set(userConfig, { merge: true });
+          console.log(`✅ ユーザーAI設定を自動更新: ${userId}`);
+        } catch (error) {
+          console.error(`❌ ユーザーAI設定自動更新エラー: ${error.message}`);
+        }
+      }
 
       // キャッシュに保存
       this.userConfigs.set(userId, userConfig);
@@ -331,7 +376,7 @@ class AIServiceManager {
           gemini: {
             enabled: true,
             apiKey: '',
-            model: 'gemini-pro',
+            model: 'gemini-2.5-flash',
             cloudAvailable: true
           }
         }
@@ -349,22 +394,30 @@ class AIServiceManager {
     const availableProviders = Object.keys(userConfig.providers || {})
       .filter(provider => {
         const config = userConfig.providers[provider];
-        return config.enabled &&
+        // enabledフラグとAPIキーの両方が必要
+        const isEnabled = config.enabled === true;
+        const hasApiKey = config.apiKey && config.apiKey.length > 0;
+
+        return isEnabled &&
                config.cloudAvailable !== false &&
-               provider !== 'ollama'; // Ollamaは除外
+               provider !== 'ollama' && // Ollamaは除外
+               hasApiKey; // APIキー必須
       });
 
+    console.log(`🔍 利用可能なプロバイダー: ${availableProviders.join(', ') || 'なし'}`);
+
     if (availableProviders.length === 0) {
-      console.log('⚠️ 利用可能なAIプロバイダーがありません - デフォルトでGeminiを使用');
-      return 'gemini';
+      throw new Error('利用可能なAIプロバイダーがありません。AI設定でプロバイダーを有効化してください。');
     }
 
     // デフォルトプロバイダーが利用可能ならそれを使用
     if (availableProviders.includes(userConfig.defaultProvider)) {
+      console.log(`✅ デフォルトプロバイダーを使用: ${userConfig.defaultProvider}`);
       return userConfig.defaultProvider;
     }
 
     // そうでなければ最初の利用可能なプロバイダーを使用
+    console.log(`✅ 利用可能なプロバイダーから選択: ${availableProviders[0]}`);
     return availableProviders[0];
   }
 
@@ -391,12 +444,15 @@ class AIServiceManager {
 
       this.currentProvider = selectedProvider;
 
-      // ユーザーのAPIキーが設定されている場合は使用
+      // ユーザー設定のAPIキーを使用（必須）
       if (providerConfig && providerConfig.apiKey) {
+        console.log(`🔑 ユーザー設定のAPIキーを使用: ${selectedProvider}`);
         this.config[selectedProvider] = {
           ...this.config[selectedProvider],
           ...providerConfig
         };
+      } else {
+        throw new Error(`${selectedProvider}のAPIキーが設定されていません`);
       }
 
       // AI生成実行

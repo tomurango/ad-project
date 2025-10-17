@@ -8,10 +8,13 @@ const OllamaService = require('./src/services/ollama-service');
 const aiServiceManager = require('./src/services/ai-service-manager');
 const firebaseService = require('./src/services/firebase-service');
 const twitterService = require('./src/services/twitter-service');
+const twitterOAuthService = require('./src/services/twitter-oauth-service');
 const googleAdsService = require('./src/services/google-ads-service');
 const youtubeDataService = require('./src/services/youtube-data-service');
 const multiPlatformAuthManager = require('./src/services/multi-platform-auth-manager');
 const MigrationService = require('./src/services/migration-service');
+const http = require('http');
+const { shell } = require('electron');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -148,6 +151,105 @@ async function initializeMultiPlatformAuth() {
   }
 }
 
+/**
+ * Twitter OAuth コールバックサーバーを起動
+ */
+let callbackServer = null;
+function startTwitterOAuthCallbackServer() {
+  if (callbackServer) {
+    console.log('⚠️ Twitter OAuthコールバックサーバーは既に起動しています');
+    return;
+  }
+
+  callbackServer = http.createServer(async (req, res) => {
+    const url = new URL(req.url, 'http://127.0.0.1:8888');
+
+    if (url.pathname === '/twitter-callback') {
+      const oauthToken = url.searchParams.get('oauth_token');
+      const oauthVerifier = url.searchParams.get('oauth_verifier');
+      const sessionId = url.searchParams.get('session_id');
+
+      if (!oauthToken || !oauthVerifier || !sessionId) {
+        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end('<h1>認証エラー</h1><p>必要なパラメータが不足しています</p>');
+        return;
+      }
+
+      try {
+        // Access Token取得
+        const result = await twitterOAuthService.handleCallback(sessionId, oauthToken, oauthVerifier);
+
+        // Firestoreに保存
+        const saveResult = await firebaseService.saveProjectTwitterAuth(
+          result.projectId,
+          result.credentials
+        );
+
+        if (saveResult.success) {
+          // 成功画面を表示
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          res.end(`
+            <html>
+              <head>
+                <title>Twitter認証成功</title>
+                <style>
+                  body { font-family: sans-serif; text-align: center; padding: 50px; }
+                  h1 { color: #1DA1F2; }
+                  .success { color: #17BF63; font-size: 48px; }
+                  .info { margin-top: 20px; color: #666; }
+                </style>
+              </head>
+              <body>
+                <div class="success">✓</div>
+                <h1>Twitter連携成功！</h1>
+                <p class="info">@${result.credentials.username} として連携しました</p>
+                <p class="info">このウィンドウを閉じて、アプリに戻ってください</p>
+                <script>setTimeout(() => window.close(), 3000);</script>
+              </body>
+            </html>
+          `);
+
+          console.log('✅ Twitter認証完了 & Firestore保存成功');
+        } else {
+          throw new Error(saveResult.error);
+        }
+      } catch (error) {
+        console.error('❌ Twitter認証処理エラー:', error);
+        res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`
+          <html>
+            <head>
+              <title>Twitter認証エラー</title>
+              <style>
+                body { font-family: sans-serif; text-align: center; padding: 50px; }
+                h1 { color: #E0245E; }
+                .error { color: #E0245E; font-size: 48px; }
+              </style>
+            </head>
+            <body>
+              <div class="error">✗</div>
+              <h1>Twitter認証エラー</h1>
+              <p>${error.message}</p>
+              <p>このウィンドウを閉じて、再度お試しください</p>
+            </body>
+          </html>
+        `);
+      }
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not Found');
+    }
+  });
+
+  callbackServer.listen(8888, '127.0.0.1', () => {
+    console.log('✅ Twitter OAuthコールバックサーバー起動: http://127.0.0.1:8888');
+  });
+
+  callbackServer.on('error', (error) => {
+    console.error('❌ コールバックサーバーエラー:', error);
+  });
+}
+
 // アプリ起動時に各サービスを初期化
 app.whenReady().then(() => {
   createWindow();
@@ -156,6 +258,7 @@ app.whenReady().then(() => {
   initializeGoogleAds();
   initializeYouTubeData();
   initializeMultiPlatformAuth();
+  startTwitterOAuthCallbackServer(); // コールバックサーバー起動
 });
 
 app.on('window-all-closed', () => {
@@ -1385,6 +1488,46 @@ ipcMain.handle('twitter-clear-credentials', async (event) => {
     const result = await twitterService.clearCredentials();
     return result;
   } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Twitter OAuth 1.0a認証フロー開始
+ipcMain.handle('twitter-oauth-start', async (event, { projectId, consumerKey, consumerSecret }) => {
+  try {
+    const result = await twitterOAuthService.startAuthFlow(projectId, consumerKey, consumerSecret);
+
+    // ブラウザで認証URLを開く
+    shell.openExternal(result.authUrl);
+
+    return {
+      success: true,
+      message: 'Twitter認証画面を開きました。ブラウザで認証を完了してください。'
+    };
+  } catch (error) {
+    console.error('❌ Twitter OAuth開始エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// プロジェクトのTwitter認証情報を取得
+ipcMain.handle('get-project-twitter-auth', async (event, { projectId }) => {
+  try {
+    const result = await firebaseService.getProjectTwitterAuth(projectId);
+    return result;
+  } catch (error) {
+    console.error('❌ Twitter認証情報取得エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// プロジェクトのTwitter連携を解除
+ipcMain.handle('remove-project-twitter-auth', async (event, { projectId }) => {
+  try {
+    const result = await firebaseService.removeProjectTwitterAuth(projectId);
+    return result;
+  } catch (error) {
+    console.error('❌ Twitter連携解除エラー:', error);
     return { success: false, error: error.message };
   }
 });

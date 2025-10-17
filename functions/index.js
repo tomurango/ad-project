@@ -29,6 +29,10 @@ const {
   processAutoPostsScheduled,
   processAutoPostsManual,
 } = require("./src/autoPostProcessor");
+const {
+  postScheduledTweetsScheduled,
+  postScheduledTweetsManual,
+} = require("./src/postScheduledTweetsV2");
 
 // Existing Functions (preserve v2)
 exports.preGenerateTweets = preGenerateTweets;
@@ -57,6 +61,10 @@ exports.testGoogleAdsConnection = testGoogleAdsConnection;
 // 自動投稿処理 (v2)
 exports.processAutoPostsScheduled = processAutoPostsScheduled;
 exports.processAutoPostsManual = processAutoPostsManual;
+
+// 予約投稿実行 (v2)
+exports.postScheduledTweetsScheduled = postScheduledTweetsScheduled;
+exports.postScheduledTweetsManual = postScheduledTweetsManual;
 
 // テスト用のヘルスチェック (preserve v2)
 exports.healthCheck = functions.https.onRequest((req, res) => {

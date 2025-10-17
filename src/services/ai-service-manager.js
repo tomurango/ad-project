@@ -88,7 +88,7 @@ class AIServiceManager {
       },
       gemini: {
         apiKey: '',
-        model: 'gemini-pro',
+        model: 'gemini-2.0-flash',
         enabled: false,
         cloudAvailable: true
       }
@@ -438,7 +438,12 @@ class AIServiceManager {
 
     if (this.isFirestoreEnabled) {
       // Firestoreから読み込み
-      await this.loadConfigFromFirestore();
+      const configLoaded = await this.loadConfigFromFirestore();
+
+      // 設定が存在しない場合は初期設定を作成
+      if (!configLoaded) {
+        await this.createDefaultAIConfig();
+      }
 
       // UIを更新
       this.updateProviderSelect();
@@ -456,7 +461,7 @@ class AIServiceManager {
       ollama: { baseUrl: 'http://localhost:11434', model: 'qwen2.5:0.5b', enabled: true, cloudAvailable: false },
       openai: { apiKey: '', model: 'gpt-3.5-turbo', enabled: false, cloudAvailable: true },
       claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true },
-      gemini: { apiKey: '', model: 'gemini-pro', enabled: false, cloudAvailable: true }
+      gemini: { apiKey: '', model: 'gemini-2.5-flash', enabled: false, cloudAvailable: true }
     };
   }
 
@@ -470,13 +475,75 @@ class AIServiceManager {
     }
   }
 
+  /**
+   * 新規ユーザーのデフォルトAI設定を作成
+   */
+  async createDefaultAIConfig() {
+    if (!this.isFirestoreEnabled || !this.userId) {
+      return;
+    }
+
+    const defaultConfig = {
+      defaultProvider: 'gemini',
+      providers: {
+        ollama: {
+          baseUrl: 'http://localhost:11434',
+          model: 'qwen2.5:0.5b',
+          enabled: true,
+          cloudAvailable: false
+        },
+        openai: {
+          apiKey: '',
+          model: 'gpt-3.5-turbo',
+          enabled: false,
+          cloudAvailable: true
+        },
+        claude: {
+          apiKey: '',
+          model: 'claude-3-haiku-20240307',
+          enabled: false,
+          cloudAvailable: true
+        },
+        gemini: {
+          apiKey: '',
+          model: 'gemini-2.0-flash',
+          enabled: false, // APIキー未設定なのでfalse
+          cloudAvailable: true
+        }
+      },
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      // Electron環境の場合はelectronAPI経由
+      if (this.firebaseService.electronAPI) {
+        await this.firebaseService.electronAPI.invoke('save-user-ai-config', {
+          userId: this.userId,
+          config: defaultConfig
+        });
+      } else {
+        // 直接Firebase使用
+        await this.firebaseService.saveUserAIConfig(this.userId, defaultConfig);
+      }
+
+      console.log('✅ デフォルトAI設定を作成しました');
+
+      // ローカル設定も更新
+      this.currentProvider = defaultConfig.defaultProvider;
+      this.config = { ...this.config, ...defaultConfig.providers };
+    } catch (error) {
+      console.error('❌ デフォルトAI設定作成エラー:', error);
+    }
+  }
+
 
   /**
    * Firestoreから設定読み込み
    */
   async loadConfigFromFirestore() {
     if (!this.isFirestoreEnabled || !this.userId || !this.firebaseService) {
-      return this.loadConfigFromLocalStorage();
+      this.loadConfigFromLocalStorage();
+      return false;
     }
 
     try {
@@ -494,11 +561,36 @@ class AIServiceManager {
 
       if (result.success && result.config) {
         this.currentProvider = result.config.defaultProvider || 'gemini';
-        this.config = { ...this.config, ...result.config.providers };
+
+        // 設定をマージ
+        const loadedConfig = result.config.providers;
+
+        // 古いGeminiモデル名を自動アップグレード
+        let needsUpdate = false;
+        if (loadedConfig.gemini) {
+          const oldModel = loadedConfig.gemini.model;
+          const unsupportedModels = ['gemini-pro', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash-latest', 'gemini-2.5-flash'];
+          if (unsupportedModels.includes(oldModel)) {
+            loadedConfig.gemini.model = 'gemini-2.0-flash';
+            needsUpdate = true;
+            console.log(`🔄 Geminiモデルを自動更新: ${oldModel} → gemini-2.0-flash`);
+          }
+        }
+
+        this.config = { ...this.config, ...loadedConfig };
+
+        // 設定が更新された場合はFirestoreに保存
+        if (needsUpdate) {
+          await this.saveConfigToFirestore();
+        }
+
+        return true; // 設定が存在した
       }
+      return false; // 設定が存在しなかった
     } catch (error) {
       console.error('❌ Firestore読み込みエラー:', error);
       this.loadConfigFromLocalStorage();
+      return false;
     }
   }
 

@@ -1,16 +1,13 @@
-const functions = require("firebase-functions");
+const {onCall} = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
-// シンプルなテスト用Function
-exports.getUserProjectsSimple = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-        "unauthenticated", 
-        "ユーザー認証が必要です"
-    );
+// シンプルなテスト用Function (v2)
+exports.getUserProjectsSimple = onCall(async (request) => {
+  if (!request.auth) {
+    throw new Error("ユーザー認証が必要です");
   }
 
-  console.log("ユーザープロジェクト取得:", context.auth.uid);
+  console.log("ユーザープロジェクト取得:", request.auth.uid);
 
   // テスト用データを返す
   return {

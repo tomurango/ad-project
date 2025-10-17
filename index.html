@@ -1298,6 +1298,14 @@
           </div>
         </div>
 
+        <!-- Twitter連携 -->
+        <div class="detail-section" style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <h3 style="margin: 0 0 15px 0; color: #1da1f2;">🐦 Twitter連携</h3>
+          <div id="twitter-auth-status">
+            <div class="loading" style="text-align: center; padding: 20px;">読み込み中...</div>
+          </div>
+        </div>
+
         <!-- プラン一覧 -->
         <div class="detail-section" style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -2862,10 +2870,13 @@
       
       // プラットフォーム状況を更新
       updatePlatformStatus();
-      
+
       // 投稿予約状況を更新
       updateSchedulingStatus();
-      
+
+      // Twitter連携状態を表示
+      displayTwitterAuthStatus(project.id || currentProjectId);
+
       // プランと投稿データを読み込み
       const projectId = project.id || currentProjectId;
       console.log('📊 プロジェクトIDでデータ読み込み開始:', projectId);
@@ -6393,6 +6404,15 @@
                 • 無料枠あり（月60リクエスト/分）<br>
                 • 超過分は使用量に応じて課金
               </div>
+              <div style="margin-bottom: 15px; padding: 12px; background: white; border: 2px solid ${config.enabled ? '#28a745' : '#6c757d'}; border-radius: 8px;">
+                <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                  <input type="checkbox" id="gemini-enabled" ${config.enabled ? 'checked' : ''} style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                  <span style="font-weight: bold; font-size: 16px;">このプロバイダーを有効にする</span>
+                </label>
+                <div style="margin-top: 8px; font-size: 13px; color: #666;">
+                  ${config.enabled ? '✅ 有効 - このAIを使用できます' : '⚠️ 無効 - 一時的に使用を停止しています'}
+                </div>
+              </div>
               <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px;">APIキー</label>
                 <input type="password" id="gemini-apikey" value="${config.apiKey || ''}" placeholder="AIza..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
@@ -6400,9 +6420,10 @@
               <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px;">モデル</label>
                 <select id="gemini-model" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                  <option value="gemini-1.5-flash" ${config.model === 'gemini-1.5-flash' ? 'selected' : ''}>Gemini 1.5 Flash (高速)</option>
-                  <option value="gemini-1.5-pro" ${config.model === 'gemini-1.5-pro' ? 'selected' : ''}>Gemini 1.5 Pro (高性能)</option>
-                  <option value="gemini-pro" ${config.model === 'gemini-pro' ? 'selected' : ''}>Gemini Pro (旧版)</option>
+                  <option value="gemini-2.0-flash" ${config.model === 'gemini-2.0-flash' ? 'selected' : ''}>Gemini 2.0 Flash (安定版・推奨)</option>
+                  <option value="gemini-2.5-flash-preview-09-2025" ${config.model === 'gemini-2.5-flash-preview-09-2025' ? 'selected' : ''}>Gemini 2.5 Flash Preview (最新プレビュー)</option>
+                  <option value="gemini-1.5-flash-latest" ${config.model === 'gemini-1.5-flash-latest' ? 'selected' : ''}>Gemini 1.5 Flash Latest (非推奨)</option>
+                  <option value="gemini-pro" ${config.model === 'gemini-pro' ? 'selected' : ''}>Gemini Pro (非推奨)</option>
                 </select>
               </div>
               <div style="color: #28a745; font-size: 14px; margin-top: 10px;">
@@ -6442,6 +6463,7 @@
         case 'gemini':
           config.apiKey = document.getElementById('gemini-apikey').value;
           config.model = document.getElementById('gemini-model').value;
+          config.enabled = document.getElementById('gemini-enabled').checked;
           break;
       }
       
@@ -7038,6 +7060,62 @@
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Twitter API設定モーダル -->
+  <div id="twitter-api-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10002; overflow-y: auto;" onclick="handleModalBackdropClick(event)">
+    <div style="background: white; margin: 80px auto; width: 90%; max-width: 500px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
+      <!-- モーダルヘッダー -->
+      <div style="background: #1da1f2; color: white; padding: 20px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 18px;">🐦 Twitter API設定</h3>
+        <button onclick="closeTwitterApiModal()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">×</button>
+      </div>
+
+      <!-- モーダルコンテンツ -->
+      <div style="padding: 30px;">
+        <p style="color: #657786; margin-bottom: 20px; line-height: 1.6;">
+          Twitter Developer Portalで取得したAPI KeyとSecretを入力してください。
+        </p>
+
+        <form id="twitter-api-form" onsubmit="submitTwitterApiKeys(event)">
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">
+              API Key (Consumer Key) *
+            </label>
+            <input type="text" id="twitter-consumer-key" required
+                   style="width: 100%; padding: 12px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;"
+                   placeholder="例: xxxxxxxxxxxxxxxxxxx">
+          </div>
+
+          <div style="margin-bottom: 25px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">
+              API Secret (Consumer Secret) *
+            </label>
+            <input type="password" id="twitter-consumer-secret" required
+                   style="width: 100%; padding: 12px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;"
+                   placeholder="例: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+          </div>
+
+          <div style="background: #fffbea; border: 1px solid #ffe8a1; border-radius: 6px; padding: 12px; margin-bottom: 20px;">
+            <div style="color: #856404; font-size: 13px; line-height: 1.5;">
+              💡 <strong>取得方法</strong><br>
+              Twitter Developer Portal → Projects → App → Keys and tokens から取得できます
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button type="button" onclick="closeTwitterApiModal()"
+                    style="flex: 1; padding: 12px; background: #e1e8ed; color: #657786; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+              キャンセル
+            </button>
+            <button type="submit"
+                    style="flex: 1; padding: 12px; background: #1da1f2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">
+              認証開始
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -9952,6 +10030,158 @@ ${editInstruction}
       } catch (error) {
         console.error('❌ プラン保存エラー:', error);
         alert('プラン保存でエラーが発生しました: ' + error.message);
+      }
+    }
+
+    // ==========================================
+    // Twitter OAuth認証関連関数
+    // ==========================================
+
+    /**
+     * Twitter連携状態を表示
+     */
+    async function displayTwitterAuthStatus(projectId) {
+      const statusElement = document.getElementById('twitter-auth-status');
+      if (!statusElement) return;
+
+      try {
+        // ElectronAPI経由でTwitter認証情報を取得
+        const result = await window.electronAPI.invoke('get-project-twitter-auth', { projectId });
+
+        if (result.success && result.isConnected) {
+          // 連携済み
+          const twitterAuth = result.twitterAuth;
+          statusElement.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 48px;">✅</div>
+                <div>
+                  <div style="font-weight: bold; font-size: 16px; color: #17BF63; margin-bottom: 5px;">連携済み</div>
+                  <div style="color: #657786; font-size: 14px;">@${twitterAuth.username}</div>
+                  <div style="color: #999; font-size: 12px; margin-top: 3px;">
+                    連携日: ${new Date(twitterAuth.connectedAt).toLocaleDateString('ja-JP')}
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-danger" onclick="disconnectTwitter('${projectId}')" style="font-size: 14px;">
+                🔓 連携解除
+              </button>
+            </div>
+          `;
+        } else {
+          // 未連携
+          statusElement.innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+              <div style="font-size: 48px; margin-bottom: 15px;">🔒</div>
+              <div style="color: #657786; margin-bottom: 20px;">
+                Twitterと連携して、自動投稿機能を有効にしましょう
+              </div>
+              <button class="btn btn-primary" onclick="startTwitterOAuth('${projectId}')" style="font-size: 14px;">
+                🐦 Twitterと連携する
+              </button>
+              <div style="margin-top: 15px; font-size: 12px; color: #999; line-height: 1.5;">
+                ※ Twitter Developer Portalで取得したAPIキーが必要です<br>
+                <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" style="color: #1da1f2;">
+                  Developer Portal を開く →
+                </a>
+              </div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('❌ Twitter連携状態表示エラー:', error);
+        statusElement.innerHTML = `
+          <div style="text-align: center; color: #E0245E; padding: 20px;">
+            エラーが発生しました: ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    // Twitter API モーダル用のグローバル変数
+    let twitterOAuthProjectId = null;
+
+    /**
+     * Twitter OAuth認証を開始
+     */
+    async function startTwitterOAuth(projectId) {
+      twitterOAuthProjectId = projectId;
+
+      // モーダルを表示
+      document.getElementById('twitter-api-modal').style.display = 'block';
+
+      // フォームをクリア
+      document.getElementById('twitter-consumer-key').value = '';
+      document.getElementById('twitter-consumer-secret').value = '';
+    }
+
+    /**
+     * Twitter APIモーダルを閉じる
+     */
+    function closeTwitterApiModal() {
+      document.getElementById('twitter-api-modal').style.display = 'none';
+      twitterOAuthProjectId = null;
+    }
+
+    /**
+     * Twitter APIキーを送信
+     */
+    async function submitTwitterApiKeys(event) {
+      event.preventDefault();
+
+      const consumerKey = document.getElementById('twitter-consumer-key').value.trim();
+      const consumerSecret = document.getElementById('twitter-consumer-secret').value.trim();
+
+      if (!consumerKey || !consumerSecret) {
+        alert('❌ API KeyとSecretの両方を入力してください');
+        return;
+      }
+
+      try {
+        // OAuth認証開始
+        const result = await window.electronAPI.invoke('twitter-oauth-start', {
+          projectId: twitterOAuthProjectId,
+          consumerKey,
+          consumerSecret
+        });
+
+        if (result.success) {
+          closeTwitterApiModal();
+          alert('✅ ' + result.message);
+
+          // 認証完了後、状態を更新（数秒待ってから）
+          setTimeout(() => {
+            displayTwitterAuthStatus(twitterOAuthProjectId);
+          }, 3000);
+        } else {
+          alert('❌ Twitter認証開始エラー: ' + result.error);
+        }
+      } catch (error) {
+        console.error('❌ Twitter OAuth開始エラー:', error);
+        alert('❌ エラーが発生しました: ' + error.message);
+      }
+    }
+
+    /**
+     * Twitter連携を解除
+     */
+    async function disconnectTwitter(projectId) {
+      if (!confirm('Twitter連携を解除しますか？\n\n解除すると、自動投稿機能が使用できなくなります。')) {
+        return;
+      }
+
+      try {
+        const result = await window.electronAPI.invoke('remove-project-twitter-auth', { projectId });
+
+        if (result.success) {
+          alert('✅ Twitter連携を解除しました');
+          displayTwitterAuthStatus(projectId);
+        } else {
+          alert('❌ 連携解除エラー: ' + result.error);
+        }
+      } catch (error) {
+        console.error('❌ Twitter連携解除エラー:', error);
+        alert('❌ エラーが発生しました: ' + error.message);
       }
     }
 

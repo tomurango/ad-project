@@ -1760,6 +1760,112 @@ class FirebaseService {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * プロジェクトのTwitter認証情報を保存
+   * @param {string} projectId - プロジェクトID
+   * @param {object} twitterAuth - Twitter認証情報
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  async saveProjectTwitterAuth(projectId, twitterAuth) {
+    try {
+      if (!this.isInitialized) {
+        throw new Error('Firebaseが初期化されていません');
+      }
+
+      if (!this.currentUser) {
+        throw new Error('ユーザーがログインしていません');
+      }
+
+      const userId = this.currentUser.uid;
+
+      // プロジェクトドキュメントを更新
+      const projectRef = this.firebase.doc(this.db, `users/${userId}/projects/${projectId}`);
+
+      await this.firebase.updateDoc(projectRef, {
+        twitterAuth: twitterAuth,
+        updatedAt: this.firebase.serverTimestamp()
+      });
+
+      console.log('✅ プロジェクトTwitter認証情報保存成功:', projectId);
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ プロジェクトTwitter認証情報保存エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * プロジェクトのTwitter認証情報を取得
+   * @param {string} projectId - プロジェクトID
+   * @returns {Promise<{success: boolean, twitterAuth?: object, error?: string}>}
+   */
+  async getProjectTwitterAuth(projectId) {
+    try {
+      if (!this.isInitialized) {
+        throw new Error('Firebaseが初期化されていません');
+      }
+
+      if (!this.currentUser) {
+        throw new Error('ユーザーがログインしていません');
+      }
+
+      const userId = this.currentUser.uid;
+
+      const projectRef = this.firebase.doc(this.db, `users/${userId}/projects/${projectId}`);
+      const projectSnap = await this.firebase.getDoc(projectRef);
+
+      if (!projectSnap.exists()) {
+        throw new Error('プロジェクトが見つかりません');
+      }
+
+      const projectData = projectSnap.data();
+      const twitterAuth = projectData.twitterAuth || null;
+
+      return {
+        success: true,
+        twitterAuth: twitterAuth,
+        isConnected: !!twitterAuth && twitterAuth.enabled
+      };
+    } catch (error) {
+      console.error('❌ プロジェクトTwitter認証情報取得エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * プロジェクトのTwitter連携を解除
+   * @param {string} projectId - プロジェクトID
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  async removeProjectTwitterAuth(projectId) {
+    try {
+      if (!this.isInitialized) {
+        throw new Error('Firebaseが初期化されていません');
+      }
+
+      if (!this.currentUser) {
+        throw new Error('ユーザーがログインしていません');
+      }
+
+      const userId = this.currentUser.uid;
+
+      const projectRef = this.firebase.doc(this.db, `users/${userId}/projects/${projectId}`);
+
+      await this.firebase.updateDoc(projectRef, {
+        twitterAuth: this.firebase.deleteField(),
+        updatedAt: this.firebase.serverTimestamp()
+      });
+
+      console.log('✅ プロジェクトTwitter連携解除成功:', projectId);
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ プロジェクトTwitter連携解除エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 // シングルトンインスタンス

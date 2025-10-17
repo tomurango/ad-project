@@ -1,23 +1,23 @@
-const functions = require("firebase-functions");
+const {onCall} = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 /**
- * Google Ads API統合用のFirebase Functions
+ * Google Ads API統合用のFirebase Functions v2
  * Google Ads APIのOAuth 2.0認証とキャンペーン管理機能を提供
  */
 
 // Google OAuth 2.0トークンリフレッシュ
-exports.refreshGoogleAdsToken = functions.https.onCall(async (data, context) => {
+exports.refreshGoogleAdsToken = onCall(async (request) => {
   try {
     // 認証チェック
-    if (!context.auth) {
-      throw new functions.https.HttpsError('unauthenticated', 'ユーザー認証が必要です');
+    if (!request.auth) {
+      throw new Error('ユーザー認証が必要です');
     }
 
-    const { refreshToken, clientId, clientSecret } = data;
-    
+    const { refreshToken, clientId, clientSecret } = request.data;
+
     if (!refreshToken || !clientId || !clientSecret) {
-      throw new functions.https.HttpsError('invalid-argument', '必要なOAuth認証情報が不足しています');
+      throw new Error('必要なOAuth認証情報が不足しています');
     }
 
     // Google OAuth 2.0トークンリフレッシュ
@@ -36,15 +36,15 @@ exports.refreshGoogleAdsToken = functions.https.onCall(async (data, context) => 
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new functions.https.HttpsError('internal', `OAuth token refresh failed: ${errorData.error_description || response.statusText}`);
+      throw new Error(`OAuth token refresh failed: ${errorData.error_description || response.statusText}`);
     }
 
     const tokenData = await response.json();
-    
+
     // Firestore にトークン情報を保存（暗号化して）
-    const userId = context.auth.uid;
+    const userId = request.auth.uid;
     const tokenRef = admin.firestore().collection('googleAdsTokens').doc(userId);
-    
+
     await tokenRef.set({
       accessToken: tokenData.access_token,
       tokenType: tokenData.token_type || 'Bearer',
@@ -54,7 +54,7 @@ exports.refreshGoogleAdsToken = functions.https.onCall(async (data, context) => 
     }, { merge: true });
 
     console.log('✅ Google Ads API トークンリフレッシュ成功:', userId);
-    
+
     return {
       success: true,
       accessToken: tokenData.access_token,
@@ -64,35 +64,30 @@ exports.refreshGoogleAdsToken = functions.https.onCall(async (data, context) => 
 
   } catch (error) {
     console.error('❌ Google Ads API トークンリフレッシュエラー:', error);
-    
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    
-    throw new functions.https.HttpsError('internal', `トークンリフレッシュエラー: ${error.message}`);
+    throw new Error(`トークンリフレッシュエラー: ${error.message}`);
   }
 });
 
 // Google Ads API キャンペーン作成
-exports.createGoogleAdsCampaign = functions.https.onCall(async (data, context) => {
+exports.createGoogleAdsCampaign = onCall(async (request) => {
   try {
     // 認証チェック
-    if (!context.auth) {
-      throw new functions.https.HttpsError('unauthenticated', 'ユーザー認証が必要です');
+    if (!request.auth) {
+      throw new Error('ユーザー認証が必要です');
     }
 
-    const { campaignType, config, customerId } = data;
-    
+    const { campaignType, config, customerId } = request.data;
+
     if (!campaignType || !config || !customerId) {
-      throw new functions.https.HttpsError('invalid-argument', '必要なキャンペーン情報が不足しています');
+      throw new Error('必要なキャンペーン情報が不足しています');
     }
 
-    const userId = context.auth.uid;
-    
+    const userId = request.auth.uid;
+
     // アクセストークンを取得
     const tokenDoc = await admin.firestore().collection('googleAdsTokens').doc(userId).get();
     if (!tokenDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Google Ads API 認証情報が見つかりません');
+      throw new Error('Google Ads API 認証情報が見つかりません');
     }
 
     const tokenData = tokenDoc.data();
@@ -125,7 +120,7 @@ exports.createGoogleAdsCampaign = functions.https.onCall(async (data, context) =
         }
       };
     } else {
-      throw new functions.https.HttpsError('invalid-argument', `サポートされていないキャンペーンタイプ: ${campaignType}`);
+      throw new Error(`サポートされていないキャンペーンタイプ: ${campaignType}`);
     }
 
     endpoint = `customers/${customerId}/campaigns:mutate`;
@@ -146,7 +141,7 @@ exports.createGoogleAdsCampaign = functions.https.onCall(async (data, context) =
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new functions.https.HttpsError('internal', `Google Ads API エラー: ${errorData.error?.message || response.statusText}`);
+      throw new Error(`Google Ads API エラー: ${errorData.error?.message || response.statusText}`);
     }
 
     const result = await response.json();
@@ -167,7 +162,7 @@ exports.createGoogleAdsCampaign = functions.https.onCall(async (data, context) =
     });
 
     console.log('✅ Google Ads キャンペーン作成成功:', campaignId);
-    
+
     return {
       success: true,
       campaignId: campaignId,
@@ -177,35 +172,30 @@ exports.createGoogleAdsCampaign = functions.https.onCall(async (data, context) =
 
   } catch (error) {
     console.error('❌ Google Ads キャンペーン作成エラー:', error);
-    
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    
-    throw new functions.https.HttpsError('internal', `キャンペーン作成エラー: ${error.message}`);
+    throw new Error(`キャンペーン作成エラー: ${error.message}`);
   }
 });
 
 // Google Ads キャンペーン一覧取得
-exports.getGoogleAdsCampaigns = functions.https.onCall(async (data, context) => {
+exports.getGoogleAdsCampaigns = onCall(async (request) => {
   try {
     // 認証チェック
-    if (!context.auth) {
-      throw new functions.https.HttpsError('unauthenticated', 'ユーザー認証が必要です');
+    if (!request.auth) {
+      throw new Error('ユーザー認証が必要です');
     }
 
-    const { customerId } = data;
-    
+    const { customerId } = request.data;
+
     if (!customerId) {
-      throw new functions.https.HttpsError('invalid-argument', 'Customer IDが必要です');
+      throw new Error('Customer IDが必要です');
     }
 
-    const userId = context.auth.uid;
-    
+    const userId = request.auth.uid;
+
     // アクセストークンを取得
     const tokenDoc = await admin.firestore().collection('googleAdsTokens').doc(userId).get();
     if (!tokenDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Google Ads API 認証情報が見つかりません');
+      throw new Error('Google Ads API 認証情報が見つかりません');
     }
 
     const tokenData = tokenDoc.data();
@@ -213,7 +203,7 @@ exports.getGoogleAdsCampaigns = functions.https.onCall(async (data, context) => 
 
     // Google Ads API クエリ
     const query = `
-      SELECT 
+      SELECT
         campaign.id,
         campaign.name,
         campaign.status,
@@ -221,7 +211,7 @@ exports.getGoogleAdsCampaigns = functions.https.onCall(async (data, context) => 
         metrics.impressions,
         metrics.clicks,
         metrics.cost_micros
-      FROM campaign 
+      FROM campaign
       WHERE campaign.status != 'REMOVED'
       ORDER BY campaign.name
     `;
@@ -238,13 +228,13 @@ exports.getGoogleAdsCampaigns = functions.https.onCall(async (data, context) => 
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new functions.https.HttpsError('internal', `Google Ads API エラー: ${errorData.error?.message || response.statusText}`);
+      throw new Error(`Google Ads API エラー: ${errorData.error?.message || response.statusText}`);
     }
 
     const result = await response.json();
 
     console.log('✅ Google Ads キャンペーン一覧取得成功');
-    
+
     return {
       success: true,
       campaigns: result.results || [],
@@ -253,53 +243,48 @@ exports.getGoogleAdsCampaigns = functions.https.onCall(async (data, context) => 
 
   } catch (error) {
     console.error('❌ Google Ads キャンペーン一覧取得エラー:', error);
-    
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    
-    throw new functions.https.HttpsError('internal', `キャンペーン一覧取得エラー: ${error.message}`);
+    throw new Error(`キャンペーン一覧取得エラー: ${error.message}`);
   }
 });
 
 // YouTube Data API チャンネル分析
-exports.analyzeYouTubeChannel = functions.https.onCall(async (data, context) => {
+exports.analyzeYouTubeChannel = onCall(async (request) => {
   try {
     // 認証チェック
-    if (!context.auth) {
-      throw new functions.https.HttpsError('unauthenticated', 'ユーザー認証が必要です');
+    if (!request.auth) {
+      throw new Error('ユーザー認証が必要です');
     }
 
-    const { channelId, apiKey } = data;
-    
+    const { channelId, apiKey } = request.data;
+
     if (!channelId || !apiKey) {
-      throw new functions.https.HttpsError('invalid-argument', 'チャンネルIDとAPIキーが必要です');
+      throw new Error('チャンネルIDとAPIキーが必要です');
     }
 
-    const userId = context.auth.uid;
+    const userId = request.auth.uid;
 
     // チャンネル基本情報を取得
     const channelResponse = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&id=${channelId}&key=${apiKey}`);
-    
+
     if (!channelResponse.ok) {
       const errorData = await channelResponse.json();
-      throw new functions.https.HttpsError('internal', `YouTube Data API エラー: ${errorData.error?.message || channelResponse.statusText}`);
+      throw new Error(`YouTube Data API エラー: ${errorData.error?.message || channelResponse.statusText}`);
     }
 
     const channelData = await channelResponse.json();
-    
+
     if (!channelData.items || channelData.items.length === 0) {
-      throw new functions.https.HttpsError('not-found', 'チャンネルが見つかりません');
+      throw new Error('チャンネルが見つかりません');
     }
 
     const channel = channelData.items[0];
 
     // 最新動画を取得
     const videosResponse = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=10&order=date&type=video&key=${apiKey}`);
-    
+
     if (!videosResponse.ok) {
       const errorData = await videosResponse.json();
-      throw new functions.https.HttpsError('internal', `YouTube Data API エラー: ${errorData.error?.message || videosResponse.statusText}`);
+      throw new Error(`YouTube Data API エラー: ${errorData.error?.message || videosResponse.statusText}`);
     }
 
     const videosData = await videosResponse.json();
@@ -309,7 +294,7 @@ exports.analyzeYouTubeChannel = functions.https.onCall(async (data, context) => 
     let videoDetails = [];
     if (videoIds) {
       const detailsResponse = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoIds}&key=${apiKey}`);
-      
+
       if (detailsResponse.ok) {
         const detailsData = await detailsResponse.json();
         videoDetails = detailsData.items || [];
@@ -358,7 +343,7 @@ exports.analyzeYouTubeChannel = functions.https.onCall(async (data, context) => 
     });
 
     console.log('✅ YouTube チャンネル分析完了:', channelId);
-    
+
     return {
       success: true,
       data: analysis,
@@ -368,35 +353,30 @@ exports.analyzeYouTubeChannel = functions.https.onCall(async (data, context) => 
 
   } catch (error) {
     console.error('❌ YouTube チャンネル分析エラー:', error);
-    
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    
-    throw new functions.https.HttpsError('internal', `チャンネル分析エラー: ${error.message}`);
+    throw new Error(`チャンネル分析エラー: ${error.message}`);
   }
 });
 
 // Google Ads API 接続テスト
-exports.testGoogleAdsConnection = functions.https.onCall(async (data, context) => {
+exports.testGoogleAdsConnection = onCall(async (request) => {
   try {
     // 認証チェック
-    if (!context.auth) {
-      throw new functions.https.HttpsError('unauthenticated', 'ユーザー認証が必要です');
+    if (!request.auth) {
+      throw new Error('ユーザー認証が必要です');
     }
 
-    const { customerId } = data;
-    
+    const { customerId } = request.data;
+
     if (!customerId) {
-      throw new functions.https.HttpsError('invalid-argument', 'Customer IDが必要です');
+      throw new Error('Customer IDが必要です');
     }
 
-    const userId = context.auth.uid;
-    
+    const userId = request.auth.uid;
+
     // アクセストークンを取得
     const tokenDoc = await admin.firestore().collection('googleAdsTokens').doc(userId).get();
     if (!tokenDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Google Ads API 認証情報が見つかりません');
+      throw new Error('Google Ads API 認証情報が見つかりません');
     }
 
     const tokenData = tokenDoc.data();
@@ -414,13 +394,13 @@ exports.testGoogleAdsConnection = functions.https.onCall(async (data, context) =
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new functions.https.HttpsError('internal', `Google Ads API エラー: ${errorData.error?.message || response.statusText}`);
+      throw new Error(`Google Ads API エラー: ${errorData.error?.message || response.statusText}`);
     }
 
     const customerInfo = await response.json();
 
     console.log('✅ Google Ads API 接続テスト成功:', customerId);
-    
+
     return {
       success: true,
       customerInfo: customerInfo,
@@ -429,11 +409,6 @@ exports.testGoogleAdsConnection = functions.https.onCall(async (data, context) =
 
   } catch (error) {
     console.error('❌ Google Ads API 接続テストエラー:', error);
-    
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    
-    throw new functions.https.HttpsError('internal', `接続テストエラー: ${error.message}`);
+    throw new Error(`接続テストエラー: ${error.message}`);
   }
 });

@@ -876,3 +876,146 @@ AIの未来、一緒に創りませんか？🚀 開発秘話：皆さんの「�
 **最終更新**: 2025-10-13
 **実装者**: Claude Code AI Assistant
 **状態**: **AI投稿生成品質改善** - 過去投稿フィルタリング + プロンプト出力形式厳密化完了
+
+## 🚀 2025-10-13 更新: Twitter予約投稿システム実装
+
+### ✅ 実装完了した機能
+
+#### 1. OAuth 1.0a認証システム
+- **3-legged OAuth**: Request Token → User Authorization → Access Token
+- **プロジェクト別管理**: 各プロジェクトに個別のTwitter認証情報を保存
+- **セキュアなフロー**: ブラウザ経由の認証 + ローカルコールバックサーバー
+- **Firestore統合**: `users/{userId}/projects/{projectId}/twitterAuth` に認証情報保存
+
+#### 2. Electronコールバックサーバー
+- **ローカルサーバー**: `http://127.0.0.1:8888/twitter-callback`
+- **自動起動**: アプリ起動時に自動でコールバックサーバー起動
+- **Access Token取得**: OAuth Verifierを受け取り、Access Tokenに交換
+- **Firestore保存**: 認証完了後、自動的にプロジェクトに認証情報保存
+- **成功画面**: HTMLレスポンスで認証成功を通知
+
+#### 3. 予約投稿実行Cloud Function (v2)
+- **定期実行**: `postScheduledTweetsScheduled` - 毎時0分実行 (`0 * * * *`)
+- **手動実行**: `postScheduledTweetsManual` - HTTP経由で手動実行可能
+- **collectionGroup検索**: 全ユーザー・全プロジェクトの投稿を横断検索
+- **投稿条件**:
+  - `status == 'scheduled'`
+  - `platform == 'twitter'`
+  - `scheduledAt <= 現在時刻`
+- **Twitter API統合**: `twitter-api-v2`パッケージでツイート投稿
+- **ステータス更新**: 投稿成功 → `posted` / 失敗 → `failed`
+
+#### 4. Firestoreインデックス設定
+- **複合インデックス**: collectionGroup('posts')の高速検索用
+- **インデックスフィールド**:
+  - `status` (ASCENDING)
+  - `platform` (ASCENDING)
+  - `scheduledAt` (ASCENDING)
+- **デプロイ**: `firebase deploy --only firestore:indexes --force`
+
+### 🔧 実装ファイル
+
+#### 新規作成
+- **`/src/services/twitter-oauth-service.js`**: OAuth認証サービス（Request Token、Access Token取得）
+- **`/functions/src/postScheduledTweetsV2.js`**: 予約投稿実行Cloud Function
+
+#### 主要修正
+- **`/main.js`**:
+  - OAuth IPCハンドラー: `twitter-oauth-start`
+  - コールバックサーバー起動関数: `startTwitterOAuthCallbackServer()`
+  - Access Token取得後のFirestore保存
+- **`/src/services/firebase-service.js`**:
+  - `saveProjectTwitterAuth(projectId, twitterAuth)` - 認証情報保存
+  - `getProjectTwitterAuth(projectId)` - 認証情報取得
+  - `removeProjectTwitterAuth(projectId)` - 連携解除
+- **`/index.html`**:
+  - Twitter連携セクション追加
+  - `displayTwitterAuthStatus(projectId)` - 連携状態表示
+  - `startTwitterOAuth(projectId)` - OAuth認証開始
+- **`/functions/index.js`**: 新規関数のエクスポート追加
+- **`/firestore.indexes.json`**: 複合インデックス定義追加
+
+### 💻 技術仕様
+
+#### OAuth認証フロー
+```javascript
+1. ユーザーがプロジェクト詳細で「Twitterと連携する」をクリック
+2. API Key/Secretを入力
+3. フロントエンド → ElectronAPI → メインプロセス
+4. Request Token取得 → sessionIdと共に保存
+5. ブラウザで認証URLを開く
+6. ユーザーがTwitterで認証
+7. http://127.0.0.1:8888/twitter-callback にリダイレクト
+8. コールバックサーバーがOAuth VerifierとTokenを受け取る
+9. Access Token取得
+10. Firestoreに保存: users/{userId}/projects/{projectId}/twitterAuth
+11. 成功画面表示
+```
+
+#### 予約投稿実行フロー
+```javascript
+1. Cloud Scheduler: 毎時0分にpostScheduledTweetsScheduledトリガー
+2. Firestore検索: collectionGroup('posts')で対象投稿取得
+3. 各投稿に対して:
+   a. パスからuserId, projectIdを抽出
+   b. プロジェクトのtwitterAuth取得
+   c. TwitterApi clientを作成
+   d. client.v2.tweet(content)で投稿
+   e. 成功 → status: 'posted', twitterData保存
+   f. 失敗 → status: 'failed', errorログ保存
+4. 結果を返却: { processedCount, successCount, failedCount, results }
+```
+
+#### Firestore データ構造
+```javascript
+users/{userId}/projects/{projectId}
+├─ twitterAuth: {
+│   ├─ enabled: true
+│   ├─ apiKey: "..."
+│   ├─ apiSecret: "..."
+│   ├─ accessToken: "..."
+│   ├─ accessTokenSecret: "..."
+│   ├─ username: "@example"
+│   └─ connectedAt: timestamp
+│ }
+
+users/{userId}/projects/{projectId}/plans/{planId}/posts/{postId}
+├─ status: 'scheduled' | 'posted' | 'failed'
+├─ platform: 'twitter'
+├─ content: "投稿内容"
+├─ scheduledAt: "2025-10-13T10:00:00.000Z"
+├─ postedAt: timestamp (投稿後)
+├─ twitterData: {
+│   ├─ tweetId: "1234567890"
+│   └─ url: "https://twitter.com/user/status/1234567890"
+│ }
+└─ error: { message, code, timestamp } (失敗時)
+```
+
+### 📊 デプロイ状況
+- **postScheduledTweetsScheduled** (v2): 毎時0分自動実行 ✅
+- **postScheduledTweetsManual** (v2): HTTP手動実行 ✅
+- **状態**: ACTIVE、インデックス作成完了待ち
+- **URL**: `https://us-central1-ad-project-4fb54.cloudfunctions.net/postScheduledTweetsManual`
+
+### 🎯 実装効果
+1. **実際のTwitter投稿**: AI生成した予約投稿を自動的にTwitterに投稿可能
+2. **プロジェクト別認証**: 複数プロジェクトで異なるTwitterアカウントを管理可能
+3. **セキュアな認証**: OAuth 1.0a標準に準拠した安全な認証フロー
+4. **自動実行**: Cloud Schedulerで毎時自動実行、手動実行も可能
+5. **エラーハンドリング**: 投稿失敗時の詳細ログと再試行可能な状態管理
+
+### 🔄 次のステップ
+- [x] OAuth認証システム実装
+- [x] 予約投稿実行Cloud Function作成
+- [x] Firestoreインデックス設定
+- [ ] インデックス作成完了待ち（数分）
+- [ ] 実際のテスト投稿実行
+- [ ] Twitter API制限対応（レート制限、リトライ）
+- [ ] 他プラットフォーム対応（Instagram、LinkedIn、Facebook）
+
+---
+
+**最終更新**: 2025-10-13
+**実装者**: Claude Code AI Assistant
+**状態**: **Twitter予約投稿システム実装完了** - インデックス作成待ち、テスト準備完了

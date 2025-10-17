@@ -1,29 +1,26 @@
-// Simple Twitter API Functions for Firebase Functions v1
-const functions = require("firebase-functions");
+// Simple Twitter API Functions for Firebase Functions v2
+const {onCall} = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 /**
  * 手動ツイート投稿（シンプル版）
  */
-exports.postTweetSimple = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "ユーザー認証が必要です");
+exports.postTweetSimple = onCall(async (request) => {
+  if (!request.auth) {
+    throw new Error("ユーザー認証が必要です");
   }
 
-  const {tweetText} = data;
+  const {tweetText} = request.data;
 
   if (!tweetText) {
-    throw new functions.https.HttpsError(
-        "invalid-argument",
-        "ツイート内容が必要です",
-    );
+    throw new Error("ツイート内容が必要です");
   }
 
   try {
     // Firestoreに投稿記録を保存（Twitter API実装前のテスト版）
     const db = admin.firestore();
     const postData = {
-      userId: context.auth.uid,
+      userId: request.auth.uid,
       tweetText: tweetText,
       platform: "twitter",
       status: "simulated", // 実際の投稿ではなくシミュレーション
@@ -44,24 +41,24 @@ exports.postTweetSimple = functions.https.onCall(async (data, context) => {
     };
   } catch (error) {
     console.error("❌ Twitter投稿シミュレーションエラー:", error);
-    throw new functions.https.HttpsError("internal", error.message);
+    throw new Error(error.message);
   }
 });
 
 /**
  * ユーザーの投稿履歴を取得（シンプル版）
  */
-exports.getUserTweetHistorySimple = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "ユーザー認証が必要です");
+exports.getUserTweetHistorySimple = onCall(async (request) => {
+  if (!request.auth) {
+    throw new Error("ユーザー認証が必要です");
   }
 
   try {
     const db = admin.firestore();
-    const limit = data.limit || 20;
+    const limit = request.data.limit || 20;
 
     const postsSnapshot = await db.collection("posts")
-        .where("userId", "==", context.auth.uid)
+        .where("userId", "==", request.auth.uid)
         .orderBy("createdAt", "desc")
         .limit(limit)
         .get();
@@ -93,16 +90,16 @@ exports.getUserTweetHistorySimple = functions.https.onCall(async (data, context)
     };
   } catch (error) {
     console.error("❌ 投稿履歴取得エラー:", error);
-    throw new functions.https.HttpsError("internal", error.message);
+    throw new Error(error.message);
   }
 });
 
 /**
  * Twitter API接続テスト（シンプル版）
  */
-exports.testTwitterConnectionSimple = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "ユーザー認証が必要です");
+exports.testTwitterConnectionSimple = onCall(async (request) => {
+  if (!request.auth) {
+    throw new Error("ユーザー認証が必要です");
   }
 
   try {
@@ -118,6 +115,6 @@ exports.testTwitterConnectionSimple = functions.https.onCall(async (data, contex
     };
   } catch (error) {
     console.error("❌ Twitter API接続テストエラー:", error);
-    throw new functions.https.HttpsError("internal", error.message);
+    throw new Error(error.message);
   }
 });
