@@ -1332,9 +1332,6 @@
               <button class="btn btn-success" onclick="createManualPost()" style="font-size: 14px;">
                 ✍️ 手動投稿作成
               </button>
-              <button class="btn btn-warning" onclick="openPostAssistant()" style="font-size: 14px;">
-                🤖💬 投稿アシスタント
-              </button>
               <button class="btn btn-primary" onclick="executeAutoPostsForProject()" style="font-size: 14px;">
                 🤖 自動投稿実行
               </button>
@@ -3131,11 +3128,8 @@
                 ${post.planId ? `<div style="color: #657786; font-size: 12px;">📋 プラン: ${post.planName || post.planId}</div>` : ''}
               </div>
               <div style="display: flex; gap: 5px; margin-left: 15px; flex-wrap: wrap;">
-                <button class="btn btn-secondary" onclick="editPost('${post.id}', '${post.planId}')" style="font-size: 12px; padding: 4px 8px;">
+                <button class="btn btn-secondary" onclick="openImproveModal('${post.id}', '${post.planId}')" style="font-size: 12px; padding: 4px 8px;">
                   ✏️ 編集
-                </button>
-                <button class="btn btn-warning" onclick="openPostAssistantForEdit('${post.id}', '${post.planId}')" style="font-size: 12px; padding: 4px 8px;">
-                  🤖 AI修正
                 </button>
                 <button class="btn btn-danger" onclick="deletePost('${post.id}', '${post.planId}')" style="font-size: 12px; padding: 4px 8px;">
                   🗑️
@@ -7012,53 +7006,121 @@
     </div>
   </div>
 
-  <!-- 投稿アシスタントモーダル -->
-  <div id="post-assistant-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; overflow-y: auto;">
-    <div style="position: relative; margin: 2vh auto; width: 90%; max-width: 800px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); max-height: 96vh; display: flex; flex-direction: column;">
-      
+  <!-- 投稿改善モーダル -->
+  <div id="post-improve-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; overflow-y: auto;" onclick="handleModalBackdropClick(event)">
+    <div style="background: white; margin: 50px auto; width: 90%; max-width: 700px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
+
       <!-- モーダルヘッダー -->
-      <div style="background: #1da1f2; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="margin: 0; font-size: 18px;">🤖💬 投稿アシスタント</h3>
-        <button onclick="closePostAssistant()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">×</button>
+      <div style="background: #1da1f2; color: white; padding: 20px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 18px;">✏️ 投稿を編集</h3>
+        <button onclick="closeImproveModal()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">×</button>
       </div>
 
-      <!-- 統一された会話エリア（LINE風） -->
-      <div id="unified-chat-area" style="flex: 1; min-height: 300px; max-height: 60vh; overflow-y: auto; padding: 20px; background: #f8f9fa; border-bottom: 1px solid #e1e8ed;">
-        <div id="all-messages">
-          <!-- 過去の会話履歴 + 現在の会話がここに表示される -->
+      <!-- モーダルコンテンツ -->
+      <div style="padding: 30px;">
+        <!-- 投稿内容編集 -->
+        <div style="margin-bottom: 25px;">
+          <h4 style="margin: 0 0 10px 0; color: #333;">📝 投稿内容</h4>
+          <textarea id="edit-post-content"
+                    placeholder="投稿内容を入力してください（最大280文字）"
+                    maxlength="280"
+                    oninput="updateCharCount()"
+                    style="width: 100%; min-height: 120px; padding: 12px; border: 1px solid #e1e8ed; border-radius: 6px; resize: vertical; font-size: 14px; font-family: inherit;"></textarea>
+          <div style="text-align: right; color: #657786; font-size: 12px; margin-top: 5px;">
+            <span id="char-count">0</span> / 280文字
+          </div>
         </div>
-        <div id="loading-indicator" style="display: none; text-align: center; padding: 20px; color: #657786;">
-          <div style="font-size: 16px;">📚 過去の会話を読み込み中...</div>
-        </div>
-      </div>
 
-      <!-- 入力エリア -->
-      <div style="flex-shrink: 0; padding: 20px; background: white; border-top: 1px solid #e1e8ed;">
-        <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
-          <textarea id="user-input" placeholder="投稿について相談したいことを入力してください..."
-                    style="flex: 1; min-width: 200px; min-height: 60px; max-height: 120px; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; resize: vertical; font-family: inherit;"
-                    onkeydown="handleInputKeydown(event)" oncompositionstart="handleCompositionStart(event)" oncompositionend="handleCompositionEnd(event)" oncompositionupdate="handleCompositionUpdate(event)"></textarea>
-          <button onclick="sendMessage()" style="padding: 12px 20px; background: #1da1f2; color: white; border: none; border-radius: 8px; cursor: pointer; min-width: 80px; flex-shrink: 0;">
-            送信
+        <!-- スケジュール時間編集 -->
+        <div style="margin-bottom: 25px;">
+          <h4 style="margin: 0 0 10px 0; color: #333;">⏰ 投稿予定時間</h4>
+          <input type="datetime-local" id="edit-scheduled-time"
+                 style="width: 100%; padding: 12px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+        </div>
+
+        <!-- カスタムプロンプト編集 -->
+        <div style="margin-bottom: 25px;">
+          <h4 style="margin: 0 0 10px 0; color: #333;">📋 カスタムプロンプト（プラン設定）</h4>
+          <textarea id="edit-custom-prompt"
+                    placeholder="このプランの投稿スタイルを指定してください"
+                    style="width: 100%; min-height: 100px; padding: 12px; border: 1px solid #e1e8ed; border-radius: 6px; resize: vertical; font-size: 14px; font-family: inherit;"></textarea>
+        </div>
+
+        <!-- AI改善機能（折りたたみ可能） -->
+        <div style="margin-bottom: 25px; border: 2px solid #e3f2fd; border-radius: 8px; overflow: hidden;">
+          <div onclick="toggleAISection()" style="background: #e3f2fd; padding: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin: 0; color: #1976d2;">💡 AIでプロンプトを改善（オプション）</h4>
+            <span id="ai-section-toggle" style="font-size: 20px; color: #1976d2;">▼</span>
+          </div>
+          <div id="ai-improvement-section" style="display: none; padding: 20px; background: #f8fbff;">
+
+        <!-- 改善指示入力 -->
+        <div style="margin-bottom: 25px;">
+          <h4 style="margin: 0 0 10px 0; color: #333;">💬 どう改善したいですか？</h4>
+          <textarea id="improve-instruction" placeholder="例: もっとカジュアルに&#10;提案型の文章（「〜するといいよ」形式）で&#10;絵文字を適度に使って"
+                    style="width: 100%; min-height: 120px; padding: 12px; border: 1px solid #e1e8ed; border-radius: 6px; resize: vertical; font-size: 14px; font-family: inherit;"></textarea>
+          <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+            <button id="generate-suggestion-btn" onclick="generatePromptSuggestion()" style="padding: 10px 20px; background: #1da1f2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">
+              → プロンプト提案を生成
+            </button>
+            <button id="regenerate-suggestion-btn" onclick="regeneratePromptSuggestion()" style="display: none; padding: 10px 20px; background: #ffc107; color: #212529; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">
+              🔄 別の提案を試す
+            </button>
+          </div>
+          <div id="refinement-hint" style="display: none; margin-top: 10px; padding: 10px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px;">
+            <p style="margin: 0; color: #1976d2; font-size: 13px;">
+              💡 気に入らない場合は、上の入力欄で改善指示を追加・修正して「🔄 別の提案を試す」をクリックしてください
+            </p>
+          </div>
+        </div>
+
+        <!-- プロンプト提案 -->
+        <div id="prompt-suggestion-section" style="display: none; margin-bottom: 25px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; color: #333;">💡 追加される内容</h4>
+            <div style="display: flex; gap: 8px;">
+              <button id="prev-suggestion-btn" onclick="navigateSuggestion(-1)" style="padding: 6px 12px; background: #e0e0e0; color: #333; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;" disabled>
+                ← 前の提案
+              </button>
+              <span id="suggestion-counter" style="padding: 6px 12px; color: #666; font-size: 13px;">1/1</span>
+              <button id="next-suggestion-btn" onclick="navigateSuggestion(1)" style="padding: 6px 12px; background: #e0e0e0; color: #333; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;" disabled>
+                次の提案 →
+              </button>
+            </div>
+          </div>
+          <div style="background: #fffbea; border: 1px solid #ffe8a1; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+            <div id="prompt-suggestion-text" style="color: #856404; font-size: 14px; font-weight: bold; white-space: pre-wrap;">
+            </div>
+          </div>
+
+          <h4 style="margin: 0 0 10px 0; color: #333;">📝 修正後のカスタムプロンプト</h4>
+          <div id="updated-custom-prompt" style="background: #e8f5e9; padding: 15px; border-radius: 8px; border: 1px solid #a5d6a7; white-space: pre-wrap; font-size: 14px; line-height: 1.6; color: #2e7d32; max-height: 150px; overflow-y: auto;">
+          </div>
+        </div>
+
+            <!-- 投稿プレビュー（AI改善使用時） -->
+            <div id="improved-preview-section" style="display: none; margin-top: 20px;">
+              <div style="border-top: 1px solid #e1e8ed; padding-top: 15px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 10px;">
+                  <input type="checkbox" id="apply-to-current-post" style="width: 18px; height: 18px; cursor: pointer;">
+                  <span style="color: #333; font-size: 14px; font-weight: bold;">この投稿にも新しいスタイルを適用</span>
+                </label>
+                <div id="improved-post-content" style="background: #f1f8ff; padding: 15px; border-radius: 8px; border: 1px solid #cce7ff; white-space: pre-wrap; font-size: 14px; line-height: 1.6; max-height: 150px; overflow-y: auto;">
+                </div>
+              </div>
+            </div>
+
+          </div> <!-- AI改善セクション閉じ -->
+        </div> <!-- AI改善コンテナ閉じ -->
+
+        <!-- アクションボタン -->
+        <div style="display: flex; gap: 10px;">
+          <button onclick="closeImproveModal()" style="flex: 1; padding: 12px; background: #e1e8ed; color: #657786; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+            キャンセル
           </button>
-        </div>
-        
-        <!-- 生成された投稿の確認エリア -->
-        <div id="generated-post-section" style="display: none; margin-top: 20px; padding: 20px; background: #f1f8ff; border: 1px solid #cce7ff; border-radius: 8px; overflow-y: auto; max-height: 40vh;">
-          <h4 style="margin: 0 0 15px 0; color: #1565c0;">📝 生成された投稿</h4>
-          <div id="generated-post-content" style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e1e8ed; margin-bottom: 15px; white-space: pre-wrap; font-family: inherit; max-height: 200px; overflow-y: auto;">
-          </div>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-start;">
-            <button onclick="regeneratePost()" style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; flex: 0 1 auto; min-width: 100px;">
-              🔄 再生成
-            </button>
-            <button onclick="editPost()" style="padding: 8px 16px; background: #ffc107; color: #212529; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; flex: 0 1 auto; min-width: 100px;">
-              ✏️ 修正指示
-            </button>
-            <button id="save-post-btn" onclick="saveAsManualPost()" style="padding: 8px 16px; background: #1da1f2; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; flex: 0 1 auto; min-width: 100px;">
-              💾 投稿として保存
-            </button>
-          </div>
+          <button id="save-edit-btn" onclick="saveEditedPost()" style="flex: 1; padding: 12px; background: #1da1f2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold;">
+            💾 保存
+          </button>
         </div>
       </div>
     </div>
@@ -10030,6 +10092,561 @@ ${editInstruction}
       } catch (error) {
         console.error('❌ プラン保存エラー:', error);
         alert('プラン保存でエラーが発生しました: ' + error.message);
+      }
+    }
+
+    // ==========================================
+    // 投稿改善機能（シンプル版）
+    // ==========================================
+
+    let improvingPostId = null;
+    let improvingPlanId = null;
+    let improvedContent = null;
+    let promptSuggestion = null;
+    let currentCustomPrompt = '';
+
+    // 提案履歴管理
+    let suggestionHistory = [];
+    let currentSuggestionIndex = -1;
+
+    /**
+     * AI改善セクションの折りたたみ切り替え
+     */
+    function toggleAISection() {
+      const section = document.getElementById('ai-improvement-section');
+      const toggle = document.getElementById('ai-section-toggle');
+
+      if (section.style.display === 'none') {
+        section.style.display = 'block';
+        toggle.textContent = '▲';
+      } else {
+        section.style.display = 'none';
+        toggle.textContent = '▼';
+      }
+    }
+
+    /**
+     * 文字数カウント更新
+     */
+    function updateCharCount() {
+      const content = document.getElementById('edit-post-content').value;
+      document.getElementById('char-count').textContent = content.length;
+    }
+
+    /**
+     * 統合編集モーダルを開く
+     */
+    async function openImproveModal(postId, planId) {
+      if (!currentProjectId) {
+        alert('プロジェクトが選択されていません');
+        return;
+      }
+
+      improvingPostId = postId;
+      improvingPlanId = planId;
+
+      try {
+        // 投稿内容を取得
+        const postResult = await window.electronAPI.invoke('firebase-get-post', currentProjectId, planId, postId);
+        if (!postResult.success) {
+          throw new Error(postResult.error);
+        }
+
+        const post = postResult.post;
+
+        // プラン情報を取得
+        const planResult = await window.electronAPI.invoke('firebase-get-plan', currentProjectId, planId);
+        if (!planResult.success) {
+          throw new Error(planResult.error);
+        }
+
+        const plan = planResult.plan;
+        currentCustomPrompt = plan.customPrompt || '';
+
+        // モーダル表示
+        document.getElementById('post-improve-modal').style.display = 'block';
+
+        // 投稿内容をフィールドにセット
+        document.getElementById('edit-post-content').value = post.content;
+        updateCharCount();
+
+        // スケジュール時間をセット
+        if (post.scheduledAt) {
+          const scheduledDate = new Date(post.scheduledAt);
+          const localDateTime = new Date(scheduledDate.getTime() - scheduledDate.getTimezoneOffset() * 60000)
+            .toISOString().slice(0, 16);
+          document.getElementById('edit-scheduled-time').value = localDateTime;
+        }
+
+        // カスタムプロンプトをフィールドにセット
+        document.getElementById('edit-custom-prompt').value = currentCustomPrompt;
+
+        // AIセクションを閉じた状態に
+        document.getElementById('ai-improvement-section').style.display = 'none';
+        document.getElementById('ai-section-toggle').textContent = '▼';
+
+        // AI改善フォームをリセット（存在確認）
+        const improveInstruction = document.getElementById('improve-instruction');
+        if (improveInstruction) improveInstruction.value = '';
+
+        const improvedPreviewSection = document.getElementById('improved-preview-section');
+        if (improvedPreviewSection) improvedPreviewSection.style.display = 'none';
+
+        const promptSuggestionSection = document.getElementById('prompt-suggestion-section');
+        if (promptSuggestionSection) promptSuggestionSection.style.display = 'none';
+
+        const applyToCurrentPost = document.getElementById('apply-to-current-post');
+        if (applyToCurrentPost) applyToCurrentPost.checked = false;
+
+        // 反復調整UIを初期状態に
+        const generateSuggestionBtn = document.getElementById('generate-suggestion-btn');
+        if (generateSuggestionBtn) generateSuggestionBtn.style.display = 'inline-block';
+
+        const regenerateSuggestionBtn = document.getElementById('regenerate-suggestion-btn');
+        if (regenerateSuggestionBtn) regenerateSuggestionBtn.style.display = 'none';
+
+        const refinementHint = document.getElementById('refinement-hint');
+        if (refinementHint) refinementHint.style.display = 'none';
+
+        // 提案履歴をリセット
+        suggestionHistory = [];
+        currentSuggestionIndex = -1;
+
+        improvedContent = null;
+        promptSuggestion = null;
+
+      } catch (error) {
+        console.error('❌ 投稿改善モーダル開始エラー:', error);
+        alert('投稿情報の取得に失敗しました');
+      }
+    }
+
+    /**
+     * 投稿改善モーダルを閉じる
+     */
+    function closeImproveModal() {
+      document.getElementById('post-improve-modal').style.display = 'none';
+      improvingPostId = null;
+      improvingPlanId = null;
+      improvedContent = null;
+      promptSuggestion = null;
+      currentCustomPrompt = '';
+    }
+
+    /**
+     * プロンプト提案を生成
+     */
+    async function generatePromptSuggestion() {
+      const instruction = document.getElementById('improve-instruction').value.trim();
+      const currentContent = document.getElementById('edit-post-content').value;
+
+      if (!instruction) {
+        alert('改善指示を入力してください');
+        return;
+      }
+
+      try {
+        // 1. カスタムプロンプト提案を生成（メイン）
+        const suggestionPrompt = `ユーザーの改善指示を、今後の投稿作成で使える簡潔なカスタムプロンプトに変換してください。
+
+【現在の投稿（参考）】
+${currentContent}
+
+【ユーザーの改善指示】
+${instruction}
+
+【出力形式】
+- 簡潔な指示文のみを出力（1-2行程度）
+- 具体的で実行可能な指示にする
+- 例: "カジュアルで親しみやすいトーンで作成"
+- 例: "提案型の文章（「〜するといいよ」「〜がおすすめ」形式）で作成"
+- 例: "絵文字を適度に使用し、読みやすく"
+
+前置きや説明は不要です。プロンプトのみを出力してください。`;
+
+        const suggestionResult = await aiServiceManager.generateText(suggestionPrompt, {
+          maxTokens: 150,
+          temperature: 0.5
+        });
+
+        if (!suggestionResult.success) {
+          throw new Error(suggestionResult.error || 'プロンプト提案生成に失敗しました');
+        }
+
+        promptSuggestion = suggestionResult.content.trim();
+
+        // 2. プロンプト提案と更新後のプロンプト全体を表示
+        document.getElementById('prompt-suggestion-text').textContent = promptSuggestion;
+
+        // 更新後のカスタムプロンプト全体を表示
+        const updatedPrompt = currentCustomPrompt
+          ? `${currentCustomPrompt}\n${promptSuggestion}`
+          : promptSuggestion;
+        document.getElementById('updated-custom-prompt').textContent = updatedPrompt;
+
+        document.getElementById('prompt-suggestion-section').style.display = 'block';
+
+        // 3. 投稿プレビューも生成（オプション）
+        const improvePrompt = `以下の投稿を修正してください：
+
+【現在の投稿】
+${currentContent}
+
+【修正指示】
+${instruction}
+
+【重要な出力形式】
+- 修正後の投稿本文のみを出力してください
+- 前置きや説明は不要です
+- そのまま投稿できる形式で出力してください`;
+
+        const improveResult = await aiServiceManager.generateText(improvePrompt, {
+          maxTokens: 500,
+          temperature: 0.7
+        });
+
+        if (improveResult.success) {
+          improvedContent = improveResult.content.trim();
+          document.getElementById('improved-post-content').textContent = improvedContent;
+          document.getElementById('improved-preview-section').style.display = 'block';
+        }
+
+        // 提案を履歴に追加
+        suggestionHistory.push({
+          instruction: instruction,
+          promptSuggestion: promptSuggestion,
+          improvedContent: improvedContent
+        });
+        currentSuggestionIndex = suggestionHistory.length - 1;
+
+        // ナビゲーションボタンを更新
+        updateNavigationButtons();
+
+        // 反復調整UIを表示
+        const generateBtn = document.getElementById('generate-suggestion-btn');
+        if (generateBtn) generateBtn.style.display = 'none';
+
+        const regenerateBtn = document.getElementById('regenerate-suggestion-btn');
+        if (regenerateBtn) regenerateBtn.style.display = 'inline-block';
+
+        const hint = document.getElementById('refinement-hint');
+        if (hint) hint.style.display = 'block';
+
+      } catch (error) {
+        console.error('❌ プロンプト提案生成エラー:', error);
+        alert('プロンプト提案生成に失敗しました: ' + error.message);
+      }
+    }
+
+    /**
+     * 提案履歴を前後に移動
+     */
+    function navigateSuggestion(direction) {
+      const newIndex = currentSuggestionIndex + direction;
+
+      if (newIndex < 0 || newIndex >= suggestionHistory.length) {
+        return; // 範囲外
+      }
+
+      currentSuggestionIndex = newIndex;
+      displayCurrentSuggestion();
+      updateNavigationButtons();
+    }
+
+    /**
+     * 現在の提案を表示
+     */
+    function displayCurrentSuggestion() {
+      if (currentSuggestionIndex < 0 || currentSuggestionIndex >= suggestionHistory.length) {
+        return;
+      }
+
+      const suggestion = suggestionHistory[currentSuggestionIndex];
+
+      // グローバル変数を更新
+      promptSuggestion = suggestion.promptSuggestion;
+      improvedContent = suggestion.improvedContent;
+
+      // 入力欄を更新
+      document.getElementById('improve-instruction').value = suggestion.instruction;
+
+      // プロンプト提案を表示
+      document.getElementById('prompt-suggestion-text').textContent = suggestion.promptSuggestion;
+
+      // 修正後のカスタムプロンプトを表示
+      const updatedPrompt = currentCustomPrompt
+        ? `${currentCustomPrompt}\n${suggestion.promptSuggestion}`
+        : suggestion.promptSuggestion;
+      document.getElementById('updated-custom-prompt').textContent = updatedPrompt;
+
+      // 投稿プレビューを表示
+      if (suggestion.improvedContent) {
+        document.getElementById('improved-post-content').textContent = suggestion.improvedContent;
+        document.getElementById('improved-preview-section').style.display = 'block';
+      } else {
+        document.getElementById('improved-preview-section').style.display = 'none';
+      }
+
+      // 提案セクションを表示
+      const suggestionSection = document.getElementById('prompt-suggestion-section');
+      if (suggestionSection) suggestionSection.style.display = 'block';
+
+      // 反復調整UIを表示
+      const genBtn = document.getElementById('generate-suggestion-btn');
+      if (genBtn) genBtn.style.display = 'none';
+
+      const regenBtn = document.getElementById('regenerate-suggestion-btn');
+      if (regenBtn) regenBtn.style.display = 'inline-block';
+
+      const hintEl = document.getElementById('refinement-hint');
+      if (hintEl) hintEl.style.display = 'block';
+    }
+
+    /**
+     * ナビゲーションボタンの有効/無効を更新
+     */
+    function updateNavigationButtons() {
+      const prevBtn = document.getElementById('prev-suggestion-btn');
+      const nextBtn = document.getElementById('next-suggestion-btn');
+      const counter = document.getElementById('suggestion-counter');
+      const navContainer = prevBtn.parentElement;
+
+      // 履歴が0の場合はナビゲーション全体を非表示
+      if (suggestionHistory.length === 0) {
+        navContainer.style.display = 'none';
+        return;
+      }
+
+      // 履歴が1つで、その1つを表示中の場合は非表示
+      if (suggestionHistory.length === 1 && currentSuggestionIndex === 0) {
+        navContainer.style.display = 'none';
+        return;
+      }
+
+      // それ以外の場合は表示
+      navContainer.style.display = 'flex';
+
+      // 新規提案入力モード（currentSuggestionIndex = suggestionHistory.length）の場合
+      if (currentSuggestionIndex >= suggestionHistory.length) {
+        prevBtn.style.display = 'inline-block';
+        prevBtn.disabled = false; // 前に戻れる
+        nextBtn.style.display = 'none'; // 次の提案ボタンを非表示
+        counter.textContent = `新規/${suggestionHistory.length}`;
+      } else {
+        // 過去の提案を表示中
+        // 最初の提案の場合は「← 前の提案」を非表示
+        if (currentSuggestionIndex <= 0) {
+          prevBtn.style.display = 'none';
+        } else {
+          prevBtn.style.display = 'inline-block';
+          prevBtn.disabled = false;
+        }
+
+        // 最新の提案の場合は「次の提案」を非表示
+        if (currentSuggestionIndex >= suggestionHistory.length - 1) {
+          nextBtn.style.display = 'none';
+        } else {
+          nextBtn.style.display = 'inline-block';
+          nextBtn.disabled = false;
+        }
+
+        counter.textContent = `${currentSuggestionIndex + 1}/${suggestionHistory.length}`;
+      }
+    }
+
+    /**
+     * 別の提案を試す（フォームリセット）
+     */
+    function regeneratePromptSuggestion() {
+      // 入力フォームをリセット
+      const instructionInput = document.getElementById('improve-instruction');
+      if (instructionInput) {
+        instructionInput.value = '';
+        instructionInput.focus();
+      }
+
+      // ボタン状態を初期化
+      const genButton = document.getElementById('generate-suggestion-btn');
+      if (genButton) genButton.style.display = 'inline-block';
+
+      const regenButton = document.getElementById('regenerate-suggestion-btn');
+      if (regenButton) regenButton.style.display = 'none';
+
+      const hintElement = document.getElementById('refinement-hint');
+      if (hintElement) hintElement.style.display = 'none';
+
+      // データをクリア（現在の提案のみ）
+      improvedContent = null;
+      promptSuggestion = null;
+
+      // 履歴がある場合は差分表示を維持（ナビゲーション可能）
+      if (suggestionHistory.length > 0) {
+        // 新規提案入力モードに設定（履歴の末尾 + 1）
+        currentSuggestionIndex = suggestionHistory.length;
+
+        // 差分表示エリアは表示したまま、内容だけクリア
+        document.getElementById('prompt-suggestion-text').textContent = '← 前の提案を確認するか、新しい改善指示を入力してください';
+        document.getElementById('updated-custom-prompt').textContent = '新しい提案を生成すると表示されます';
+        document.getElementById('improved-preview-section').style.display = 'none';
+        document.getElementById('prompt-suggestion-section').style.display = 'block';
+
+        // ナビゲーションボタンを更新（「← 前の提案」が有効に）
+        updateNavigationButtons();
+      } else {
+        // 履歴がない場合は完全に非表示
+        document.getElementById('prompt-suggestion-section').style.display = 'none';
+        document.getElementById('improved-preview-section').style.display = 'none';
+        currentSuggestionIndex = -1;
+      }
+    }
+
+    /**
+     * プロンプト改善を保存
+     */
+    async function savePromptImprovement() {
+      if (!promptSuggestion || !improvingPlanId) {
+        alert('保存する内容がありません');
+        return;
+      }
+
+      try {
+        // 1. カスタムプロンプトを更新（メイン処理）
+        const planResult = await window.electronAPI.invoke('firebase-get-plan', currentProjectId, improvingPlanId);
+
+        if (!planResult.success) {
+          throw new Error('プラン情報の取得に失敗しました');
+        }
+
+        const plan = planResult.plan;
+        const updatedPrompt = plan.customPrompt
+          ? `${plan.customPrompt}\n${promptSuggestion}`
+          : promptSuggestion;
+
+        await window.electronAPI.invoke('firebase-update-plan',
+          currentProjectId,
+          improvingPlanId,
+          { customPrompt: updatedPrompt }
+        );
+
+        // 2. 投稿も更新（チェックボックスがONの場合のみ）
+        const applyToCurrentPost = document.getElementById('apply-to-current-post').checked;
+        let postUpdated = false;
+
+        if (applyToCurrentPost && improvedContent && improvingPostId) {
+          const updateResult = await window.electronAPI.invoke('firebase-update-post',
+            currentProjectId,
+            improvingPlanId,
+            improvingPostId,
+            { content: improvedContent }
+          );
+
+          if (updateResult.success) {
+            postUpdated = true;
+          }
+        }
+
+        const message = '✅ カスタムプロンプトを保存しました' + (postUpdated ? '\n📝 この投稿も更新しました' : '');
+        alert(message);
+
+        closeImproveModal();
+
+        // 投稿一覧を再読み込み
+        if (currentPlanId) {
+          await displayPlanPosts(currentPlanId);
+        }
+
+      } catch (error) {
+        console.error('❌ プロンプト保存エラー:', error);
+        alert('プロンプト保存に失敗しました: ' + error.message);
+      }
+    }
+
+    /**
+     * 統合編集を保存
+     */
+    async function saveEditedPost() {
+      if (!improvingPostId || !improvingPlanId) {
+        alert('投稿情報が不足しています');
+        return;
+      }
+
+      try {
+        // 1. 投稿内容を取得
+        const content = document.getElementById('edit-post-content').value;
+        const scheduledTime = document.getElementById('edit-scheduled-time').value;
+        const customPrompt = document.getElementById('edit-custom-prompt').value;
+
+        if (!content.trim()) {
+          alert('投稿内容を入力してください');
+          return;
+        }
+
+        if (content.length > 280) {
+          alert('投稿内容は280文字以下にしてください');
+          return;
+        }
+
+        if (!scheduledTime) {
+          alert('投稿予定時間を選択してください');
+          return;
+        }
+
+        // 2. 投稿を更新
+        const postUpdateData = {
+          content: content,
+          scheduledAt: new Date(scheduledTime).toISOString()
+        };
+
+        // AI改善を使用した場合はその内容も反映
+        if (promptSuggestion && document.getElementById('apply-to-current-post').checked && improvedContent) {
+          postUpdateData.content = improvedContent;
+        }
+
+        const postUpdateResult = await window.electronAPI.invoke('firebase-update-post',
+          currentProjectId,
+          improvingPlanId,
+          improvingPostId,
+          postUpdateData
+        );
+
+        if (!postUpdateResult.success) {
+          throw new Error(postUpdateResult.error || '投稿更新に失敗しました');
+        }
+
+        // 3. カスタムプロンプトを更新（変更されている場合）
+        if (customPrompt !== currentCustomPrompt) {
+          let finalPrompt = customPrompt;
+
+          // AI改善を使用した場合は提案を追加
+          if (promptSuggestion) {
+            finalPrompt = customPrompt
+              ? `${customPrompt}\n${promptSuggestion}`
+              : promptSuggestion;
+          }
+
+          const promptUpdateResult = await window.electronAPI.invoke('firebase-update-plan',
+            currentProjectId,
+            improvingPlanId,
+            { customPrompt: finalPrompt }
+          );
+
+          if (!promptUpdateResult.success) {
+            console.error('プロンプト更新失敗:', promptUpdateResult.error);
+          }
+        }
+
+        alert('✅ 投稿を更新しました');
+
+        closeImproveModal();
+
+        // 投稿一覧を再読み込み
+        if (currentPlanId) {
+          await displayPlanPosts(currentPlanId);
+        }
+
+      } catch (error) {
+        console.error('❌ 投稿更新エラー:', error);
+        alert('投稿更新に失敗しました: ' + error.message);
       }
     }
 
