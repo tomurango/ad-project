@@ -1491,3 +1491,185 @@ src/main/
 **最終更新**: 2025-10-24
 **実装者**: Claude Code AI Assistant
 **状態**: **フロントエンド完全モジュール化完了** - index.html 89%削減達成
+---
+
+## 🚀 2025-10-24 更新: main.jsリファクタリング Phase 1 - 基本構造準備
+
+### 📊 現状認識
+
+**問題点**:
+- main.js: 2,380行 (72KB)
+- 114個のIPCハンドラーが1ファイルに集中
+- サービス初期化、ウィンドウ管理、全IPCハンドラーが混在
+- 保守性・可読性が低下
+
+### ✅ Phase 1で完了した作業
+
+#### 1. 基本構造の準備
+
+```
+src/main/
+├── README.md            # 設計書・ドキュメント ✅
+├── services-init.js     # サービス初期化 ✅
+├── window.js            # ウィンドウ管理 ✅
+└── ipc/                 # IPCハンドラー（今後分割）
+    ├── auth.js          # Firebase認証
+    ├── firestore.js     # Firestore操作
+    ├── projects.js      # プロジェクト管理
+    ├── plans.js         # プラン管理
+    ├── posts.js         # 投稿管理
+    ├── twitter.js       # Twitter関連
+    ├── google-ads.js    # Google Ads
+    ├── youtube.js       # YouTube
+    ├── github.js        # GitHub
+    ├── platforms.js     # Instagram/LinkedIn
+    └── ai.js            # AI関連
+```
+
+#### 2. services-init.js（180行）
+
+**機能**:
+- 全サービスの初期化を一元管理
+- Firebase、Twitter、Google Ads、YouTube等
+
+**エクスポート**:
+```javascript
+// サービスインスタンス
+ollamaService, aiServiceManager, firebaseService,
+twitterService, googleAdsService, youtubeDataService,
+multiPlatformAuthManager, getMigrationService()
+
+// 初期化関数
+initializeAllServices(), initializeFirebase(),
+initializeTwitter(), initializeGoogleAds(),
+initializeYouTubeData(), initializeMultiPlatformAuth()
+
+// OAuth サーバー管理
+callbackServer, setCallbackServer(), getCallbackServer()
+```
+
+#### 3. window.js（50行）
+
+**機能**:
+- Electronメインウィンドウの作成・管理
+- デベロッパーツール自動起動（開発時）
+- デバッグログ出力
+
+**エクスポート**:
+```javascript
+createWindow() // BrowserWindowインスタンスを返す
+```
+
+#### 4. README.md - 包括的な設計書
+
+**内容**:
+- ディレクトリ構造の説明
+- 各モジュールの責務
+- IPCハンドラー分割計画（114個を11ファイルに分類）
+- 使用例とコードサンプル
+- リファクタリングの効果
+- 次のステップ
+
+### 📋 IPCハンドラー分割計画
+
+**合計114ハンドラーを11ファイルに分類**:
+
+| ファイル | ハンドラー数 | 説明 |
+|---------|------------|------|
+| ipc/auth.js | 約15個 | Firebase認証 |
+| ipc/firestore.js | 約20個 | Firestore CRUD |
+| ipc/projects.js | 約10個 | プロジェクト管理 |
+| ipc/plans.js | 約10個 | プラン管理 |
+| ipc/posts.js | 約10個 | 投稿管理 |
+| ipc/twitter.js | 約15個 | Twitter関連 |
+| ipc/google-ads.js | 約10個 | Google Ads |
+| ipc/youtube.js | 約8個 | YouTube |
+| ipc/github.js | 約5個 | GitHub |
+| ipc/platforms.js | 約5個 | Instagram/LinkedIn |
+| ipc/ai.js | 約6個 | AI関連 |
+
+### 🎯 Phase 1の成果
+
+```
+完成したモジュール:
+- services-init.js:  180行
+- window.js:         50行
+- README.md:        設計書完成
+
+準備完了:
+- IPCハンドラー分割の詳細設計
+- モジュール構成の決定
+- 次フェーズの明確化
+```
+
+### 🔄 次のPhase 2（今後の作業）
+
+#### IPCハンドラーの実際の分割
+1. ipc/auth.js の作成（約200行）
+2. ipc/firestore.js の作成（約250行）
+3. ipc/projects.js の作成（約150行）
+4. ... 残り8ファイル
+
+#### 新しいmain.jsの完成
+```javascript
+// シンプルなエントリーポイント（約100行）
+const { app } = require('electron');
+const { createWindow } = require('./src/main/window');
+const { initializeAllServices } = require('./src/main/services-init');
+
+// IPCハンドラーをインポート
+require('./src/main/ipc/auth');
+require('./src/main/ipc/firestore');
+// ... 他のIPCハンドラー
+
+app.whenReady().then(async () => {
+  await initializeAllServices();
+  createWindow();
+});
+
+// ウィンドウ管理
+app.on('window-all-closed', ...);
+app.on('activate', ...);
+```
+
+### 📈 期待される効果
+
+#### リファクタリング後の予測
+```
+元のmain.js:        2,380行 (1ファイル)
+リファクタリング後:   約100行 + 13モジュール
+
+- 新main.js:         約100行
+- services-init.js:  約180行
+- window.js:         約50行
+- ipc/auth.js:       約200行
+- ipc/firestore.js:  約250行
+- ... (残り9モジュール)
+
+総行数:             約2,400行（モジュール化による若干の増加）
+保守性:             大幅向上（責務が明確）
+可読性:             大幅向上（1ファイル平均200行）
+```
+
+### ✨ Phase 1の意義
+
+1. **明確な設計**
+   - 全体構造が可視化
+   - 各モジュールの責務が定義済み
+   - 次のステップが明確
+
+2. **段階的な移行**
+   - 既存main.jsを壊さずに並行開発可能
+   - Phase 2で実際の分割を安全に実行
+   - ロールバックが容易
+
+3. **ドキュメント整備**
+   - README.mdで全体像を把握可能
+   - 新規参加者も理解しやすい
+   - 保守性の向上
+
+---
+
+**最終更新**: 2025-10-24
+**実装者**: Claude Code AI Assistant
+**状態**: **main.jsリファクタリング Phase 1完了** - 基本構造準備・設計完成
