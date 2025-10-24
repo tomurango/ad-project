@@ -1,0 +1,143 @@
+/**
+ * Projects Styles
+ * プロジェクト一覧、プロジェクト詳細画面のスタイル
+ */
+
+/* プロジェクト一覧 */
+.project-list {
+  display: grid;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.project-item {
+  background: white;
+  border: 1px solid #e1e8ed;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.project-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(29, 161, 242, 0.2);
+  transform: translateY(-2px);
+}
+
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.project-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.project-category {
+  background: #e8f4f8;
+  color: var(--primary);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.project-description {
+  color: #657786;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 10px 0;
+}
+
+.project-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.tech-tag {
+  background: #f8f9fa;
+  border: 1px solid #e1e8ed;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: #657786;
+}
+
+.project-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e1e8ed;
+  font-size: 12px;
+  color: #657786;
+}
+
+.project-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.project-actions button {
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+/* プロジェクト候補リスト */
+.candidate-item {
+  padding: 12px;
+  border-bottom: 1px solid #e1e8ed;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.candidate-item:hover {
+  background: #f7f9fc;
+}
+
+.candidate-item:last-child {
+  border-bottom: none;
+}
+
+.candidate-info {
+  flex: 1;
+}
+
+.candidate-name {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.candidate-path {
+  font-size: 12px;
+  color: #657786;
+}
+
+.candidate-select {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.candidate-select:hover {
+  background: #1991db;
+}
