@@ -5,7 +5,7 @@
  */
 
 const { ipcMain } = require('electron');
-const youtubeDataService = require('../../../src/services/youtube-data-service');
+const { youtubeDataService } = require('../services-init');
 
 // ==========================================
 // YouTube Configuration

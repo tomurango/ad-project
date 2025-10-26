@@ -8,6 +8,22 @@
  * - プラン管理
  */
 
+// ========================================
+// ES Modules インポート
+// ========================================
+
+import { loadProjectPlans } from './plans.js';
+import { loadProjectPosts } from './posts.js';
+
+import {
+  getPlatformLabel,
+  getFrequencyLabel
+} from './modules/constants.js';
+
+import {
+  formatDateTime
+} from './modules/date-utils.js';
+
 // ==================================================
 // プロジェクト一覧表示
 // ==================================================
@@ -21,6 +37,7 @@ function showProjectsMainScreen() {
 
   // プロジェクト一覧セクションのみ表示
   const projectsSection = document.getElementById('projects-section');
+
   if (projectsSection) {
     projectsSection.style.display = 'block';
 
@@ -69,12 +86,10 @@ function displayProjectList(projects) {
   // プロジェクト管理セクション全体の表示状態も確認
   const projectsSection = document.getElementById('projects-section');
   if (projectsSection) {
-    const sectionStyle = window.getComputedStyle(projectsSection);
-
     // 強制的にプロジェクトセクションを表示
-    projectsSection.style.display = 'block !important';
-    projectsSection.style.visibility = 'visible !important';
-    projectsSection.style.opacity = '1 !important';
+    projectsSection.style.display = 'block';
+    projectsSection.style.visibility = 'visible';
+    projectsSection.style.opacity = '1';
     projectsSection.classList.add('active');
 
     // 他のセクションを非アクティブ化
@@ -444,7 +459,9 @@ function displayProjectDetailInfo(project) {
   const projectId = project.id || currentProjectId;
   console.log('📊 プロジェクトIDでデータ読み込み開始:', projectId);
   if (projectId) {
-    loadProjectDetailData(projectId);
+    // ES Modules importで読み込んだ関数を直接呼び出し
+    loadProjectPlans(projectId);
+    loadProjectPosts(projectId);
   } else {
     console.warn('⚠️ プロジェクトIDが未設定です');
   }
@@ -502,4 +519,31 @@ function getCategoryName(category) {
     other: 'その他'
   };
   return categories[category] || 'その他';
+}
+
+// ========================================
+// ES Modules: HTML onclick用にwindowに公開
+// ========================================
+
+// HTML onclick属性から呼び出される関数をwindowに公開
+if (typeof window !== 'undefined') {
+  // 画面遷移関数
+  window.showProjectsMainScreen = showProjectsMainScreen;
+  window.backToProjectList = backToProjectList;
+  window.viewProjectDetail = viewProjectDetail;
+
+  // モーダル操作関数
+  window.openProjectModal = openProjectModal;
+  window.closeProjectModal = closeProjectModal;
+  window.closeEditProjectModal = closeEditProjectModal;
+
+  // CRUD操作関数
+  window.registerProject = registerProject;
+  window.editProjectDetail = editProjectDetail;
+  window.editProject = editProject;
+  window.saveProjectChanges = saveProjectChanges;
+  window.deleteProjectFromDetail = deleteProjectFromDetail;
+  window.deleteProject = deleteProject;
+
+  console.log('✅ projects.js (ES Module) loaded and functions exposed to window');
 }

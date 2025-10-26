@@ -19,13 +19,44 @@
  */
 
 // ========================================
+// ES Modules インポート
+// ========================================
+
+import {
+  IPC_CHANNELS,
+  POST_STATUS,
+  POST_STATUS_LABELS,
+  getPostStatusLabel,
+  getPostStatusColor
+} from './modules/constants.js';
+
+import {
+  formatDateTime,
+  getRelativeTime,
+  getTomorrow,
+  toDateString,
+  toTimeString
+} from './modules/date-utils.js';
+
+import {
+  getElementById,
+  showModal,
+  hideModal,
+  getInputValue,
+  setInputValue,
+  clearForm,
+  setHTML
+} from './modules/dom-utils.js';
+
+// ========================================
 // 投稿データ読み込み・表示
 // ========================================
 
 /**
  * プロジェクトの投稿一覧を読み込み・表示
+ * @export
  */
-async function loadProjectPosts(projectId, resetCount = true) {
+export async function loadProjectPosts(projectId, resetCount = true) {
   try {
     console.log('📋 投稿一覧読み込み開始:', projectId);
 
@@ -63,8 +94,9 @@ async function loadProjectPosts(projectId, resetCount = true) {
 
 /**
  * 投稿一覧を表示
+ * @export
  */
-function displayPosts(posts) {
+export function displayPosts(posts) {
   const postsContainer = document.getElementById('project-posts-list');
 
   if (!posts || posts.length === 0) {
@@ -81,7 +113,7 @@ function displayPosts(posts) {
   let postsHTML = '';
   posts.forEach(post => {
     const statusColor = getPostStatusColor(post.status);
-    const statusText = getPostStatusText(post.status);
+    const statusText = getPostStatusLabel(post.status);
 
     // AI生成失敗投稿の判定
     const isAIFailed = post.type === 'ai_failed_manual_required' ||
@@ -113,7 +145,7 @@ function displayPosts(posts) {
             <span class="post-platform">${post.platform || 'Twitter'}</span>
             ${isAIFailed ? '<span class="post-status" style="background-color: #e0245e; color: white;">🔧 要編集</span>' : ''}
           </div>
-          <div class="post-date">${new Date(post.scheduledAt).toLocaleString('ja-JP')}</div>
+          <div class="post-date">${formatDateTime(post.scheduledAt)}</div>
         </div>
 
         <div class="post-content">${post.content.substring(0, 200)}${post.content.length > 200 ? '...' : ''}</div>
@@ -141,8 +173,9 @@ function displayPosts(posts) {
 
 /**
  * さらに投稿を読み込む
+ * @export
  */
-function loadMorePosts() {
+export function loadMorePosts() {
   postsDisplayCount += 10;
   displayPosts(allPosts.slice(0, postsDisplayCount));
 }
@@ -161,68 +194,95 @@ function displayPostsError(errorMessage) {
   `;
 }
 
-/**
- * 投稿ステータスの色を取得
- */
-function getPostStatusColor(status) {
-  const colors = {
-    'draft': '#657786',
-    'scheduled': '#1da1f2',
-    'posted': '#17bf63',
-    'failed': '#e0245e'
-  };
-  return colors[status] || '#657786';
-}
-
-/**
- * 投稿ステータスのテキストを取得
- */
-function getPostStatusText(status) {
-  const texts = {
-    'draft': '下書き',
-    'scheduled': '予約済み',
-    'posted': '投稿済み',
-    'failed': '失敗'
-  };
-  return texts[status] || status;
-}
+// ステータス関連の関数は constants.js から import済み
+// getPostStatusColor, getPostStatusLabel を使用
 
 // ========================================
 // 投稿CRUD操作
 // ========================================
 
 /**
- * 手動投稿を作成
+ * 手動投稿を作成（モーダル表示）
+ * @export
  */
-async function createManualPost() {
+export function createManualPost() {
   if (!currentProjectId) {
     alert('プロジェクトが選択されていません');
     return;
   }
 
+  // フォームクリア
+  document.getElementById('manual-post-content').value = '';
+  document.getElementById('manual-post-platform').value = 'twitter';
+
+  // デフォルトで明日の日付を設定
+  const tomorrow = getTomorrow();
+  document.getElementById('manual-post-date').value = toDateString(tomorrow);
+  document.getElementById('manual-post-time').value = toTimeString(tomorrow);
+
+  // モーダル表示
+  document.getElementById('manual-post-modal').style.display = 'block';
+}
+
+/**
+ * 手動投稿モーダルを閉じる
+ * @export
+ */
+export function closeManualPostModal() {
+  document.getElementById('manual-post-modal').style.display = 'none';
+}
+
+/**
+ * 手動投稿フォームの送信処理
+ * @export
+ */
+export async function submitManualPost(event) {
+  event.preventDefault();
+
+  if (!currentProjectId || !currentUser) {
+    alert('プロジェクトまたはユーザーが選択されていません');
+    return;
+  }
+
+  const content = document.getElementById('manual-post-content').value.trim();
+  const platform = document.getElementById('manual-post-platform').value;
+  const date = document.getElementById('manual-post-date').value;
+  const time = document.getElementById('manual-post-time').value;
+
+  if (!content || !platform || !date || !time) {
+    alert('すべての項目を入力してください');
+    return;
+  }
+
   try {
-    // プランリスト取得
-    const plans = await getProjectPlansForSelection();
+    // 投稿予定日時を作成
+    const scheduledAt = new Date(`${date}T${time}:00`);
 
-    if (!plans || plans.length === 0) {
-      alert('❌ プランが存在しません。\n\n先にプランを作成してください。');
-      return;
+    const postData = {
+      userId: currentUser.uid,
+      projectId: currentProjectId,
+      planId: null, // 手動投稿の場合はplanIdなし
+      content: content,
+      platform: platform,
+      scheduledAt: scheduledAt.toISOString(),
+      status: 'scheduled',
+      type: 'manual',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    // Firestoreに保存
+    const result = await window.electronAPI.invoke('firebase-create-post', postData);
+
+    if (result.success) {
+      alert('✅ 手動投稿を作成しました');
+      closeManualPostModal();
+
+      // 投稿一覧を再読み込み
+      await loadProjectPosts(currentProjectId);
+    } else {
+      alert('❌ 投稿作成に失敗しました: ' + result.error);
     }
-
-    // プラン選択モーダルを表示
-    const planSelectHTML = plans.map(plan =>
-      `<option value="${plan.id}">${plan.name} (${plan.platform})</option>`
-    ).join('');
-
-    const modal = document.getElementById('manual-post-modal');
-    const planSelect = document.getElementById('manual-post-plan');
-    planSelect.innerHTML = '<option value="">プランを選択</option>' + planSelectHTML;
-
-    // フォームクリア
-    document.getElementById('manual-post-content').value = '';
-    document.getElementById('manual-post-datetime').value = '';
-
-    modal.style.display = 'block';
 
   } catch (error) {
     console.error('❌ 手動投稿作成エラー:', error);
@@ -232,8 +292,9 @@ async function createManualPost() {
 
 /**
  * 投稿を編集
+ * @export
  */
-async function editPost(postId, planId) {
+export async function editPost(postId, planId) {
   if (!currentProjectId) {
     alert('プロジェクトが選択されていません');
     return;
@@ -273,8 +334,9 @@ async function editPost(postId, planId) {
 
 /**
  * 投稿を削除
+ * @export
  */
-async function deletePost(postId, planId) {
+export async function deletePost(postId, planId) {
   if (!confirm('この投稿を削除しますか？\n\nこの操作は取り消せません。')) {
     return;
   }
@@ -299,14 +361,93 @@ async function deletePost(postId, planId) {
   }
 }
 
+/**
+ * 投稿編集モーダルを閉じる
+ * @export
+ */
+export function closeEditPostModal() {
+  document.getElementById('edit-post-modal').style.display = 'none';
+  window.currentEditingPost = null;
+}
+
+/**
+ * 投稿編集の変更を保存
+ * @export
+ */
+// 投稿保存の重複実行防止フラグ
+let isSavingPost = false;
+
+export async function saveEditPostChanges() {
+  // 重複実行防止
+  if (isSavingPost) {
+    console.log('⚠️ 投稿保存処理が既に実行中です');
+    return;
+  }
+
+  if (!window.currentEditingPost) {
+    alert('❌ 編集対象の投稿が見つかりません');
+    return;
+  }
+
+  const { postId, planId } = window.currentEditingPost;
+
+  isSavingPost = true;
+
+  try {
+    const content = document.getElementById('edit-post-content').value;
+    const datetimeValue = document.getElementById('edit-post-datetime').value;
+
+    if (!content || !content.trim()) {
+      alert('❌ 投稿内容を入力してください');
+      isSavingPost = false;
+      return;
+    }
+
+    if (!datetimeValue) {
+      alert('❌ 投稿予定日時を入力してください');
+      isSavingPost = false;
+      return;
+    }
+
+    // ISO形式に変換
+    const scheduledAt = new Date(datetimeValue).toISOString();
+
+    const result = await window.electronAPI.invoke('firebase-update-post', {
+      projectId: currentProjectId,
+      planId: planId,
+      postId: postId,
+      updateData: {
+        content: content.trim(),
+        scheduledAt: scheduledAt,
+        updatedAt: new Date().toISOString()
+      }
+    });
+
+    if (result.success) {
+      alert('✅ 投稿を更新しました');
+      closeEditPostModal();
+      await loadProjectPosts(currentProjectId);
+    } else {
+      alert('❌ 投稿更新エラー: ' + result.error);
+    }
+
+  } catch (error) {
+    console.error('❌ 投稿更新エラー:', error);
+    alert('❌ エラーが発生しました: ' + error.message);
+  } finally {
+    isSavingPost = false;
+  }
+}
+
 // ========================================
 // 投稿アシスタント（AIチャット機能）
 // ========================================
 
 /**
  * 投稿アシスタントを開く（新規投稿）
+ * @export
  */
-async function openPostAssistant() {
+export async function openPostAssistant() {
   if (!currentProjectId) {
     alert('プロジェクトが選択されていません');
     return;
@@ -348,8 +489,9 @@ async function openPostAssistant() {
 
 /**
  * 投稿アシスタントを開く（投稿編集）
+ * @export
  */
-async function openPostAssistantForEdit(postId, planId) {
+export async function openPostAssistantForEdit(postId, planId) {
   if (!currentProjectId) {
     alert('プロジェクトが選択されていません');
     return;
@@ -395,8 +537,9 @@ async function openPostAssistantForEdit(postId, planId) {
 
 /**
  * 投稿アシスタントを閉じる
+ * @export
  */
-async function closePostAssistant() {
+export async function closePostAssistant() {
   document.getElementById('post-assistant-modal').style.display = 'none';
   window.currentEditingPostAssistant = null;
 
@@ -474,8 +617,9 @@ function addMessageToAssistant(sender, message) {
 
 /**
  * 投稿内容を生成（AIチャット）
+ * @export
  */
-async function generatePostContent(userMessage) {
+export async function generatePostContent(userMessage) {
   const planId = document.getElementById('post-assistant-plan').value;
 
   if (!planId) {
@@ -591,8 +735,9 @@ function displayGeneratedPost(postContent) {
 
 /**
  * 投稿を再生成
+ * @export
  */
-async function regeneratePost() {
+export async function regeneratePost() {
   const planId = document.getElementById('post-assistant-plan').value;
 
   if (!planId) {
@@ -605,8 +750,9 @@ async function regeneratePost() {
 
 /**
  * 手動投稿として保存
+ * @export
  */
-async function saveAsManualPost() {
+export async function saveAsManualPost() {
   const planId = document.getElementById('post-assistant-plan').value;
   const content = document.getElementById('generated-post-content').textContent;
 
@@ -744,8 +890,9 @@ async function createManualPostWithContent(content) {
 
 /**
  * 投稿改善モーダルを開く
+ * @export
  */
-async function openImproveModal(postId, planId) {
+export async function openImproveModal(postId, planId) {
   if (!currentProjectId) {
     alert('プロジェクトが選択されていません');
     return;
@@ -785,8 +932,9 @@ async function openImproveModal(postId, planId) {
 
 /**
  * 投稿を改善（AI処理）
+ * @export
  */
-async function improvePost() {
+export async function improvePost() {
   if (!window.currentImprovingPost) {
     alert('❌ 改善対象の投稿が見つかりません');
     return;
@@ -834,8 +982,9 @@ async function improvePost() {
 
 /**
  * 改善された投稿を保存
+ * @export
  */
-async function saveEditedPost() {
+export async function saveEditedPost() {
   if (!window.currentImprovingPost) {
     alert('❌ 改善対象の投稿が見つかりません');
     return;
@@ -876,8 +1025,9 @@ async function saveEditedPost() {
 
 /**
  * 改善モーダルを閉じる
+ * @export
  */
-function closeImproveModal() {
+export function closeImproveModal() {
   document.getElementById('improve-post-modal').style.display = 'none';
   window.currentImprovingPost = null;
 }
@@ -1200,3 +1350,32 @@ async function getProjectPlansForSelection() {
 
 let allPosts = []; // 全投稿データ
 let postsDisplayCount = 10; // 表示件数
+
+// ========================================
+// ES Modules: HTML onclick用にwindowに公開
+// ========================================
+
+// HTML onclick属性から呼び出される関数をwindowに公開
+if (typeof window !== 'undefined') {
+  window.loadProjectPosts = loadProjectPosts;
+  window.createManualPost = createManualPost;
+  window.closeManualPostModal = closeManualPostModal;
+  window.submitManualPost = submitManualPost;
+  window.editPost = editPost;
+  window.closeEditPostModal = closeEditPostModal;
+  window.saveEditPostChanges = saveEditPostChanges;
+  window.deletePost = deletePost;
+  window.loadMorePosts = loadMorePosts;
+  window.openPostAssistant = openPostAssistant;
+  window.openPostAssistantForEdit = openPostAssistantForEdit;
+  window.closePostAssistant = closePostAssistant;
+  window.generatePostContent = generatePostContent;
+  window.regeneratePost = regeneratePost;
+  window.saveAsManualPost = saveAsManualPost;
+  window.openImproveModal = openImproveModal;
+  window.improvePost = improvePost;
+  window.saveEditedPost = saveEditedPost;
+  window.closeImproveModal = closeImproveModal;
+
+  console.log('✅ posts.js (ES Module) loaded and functions exposed to window');
+}

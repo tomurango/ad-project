@@ -5,7 +5,7 @@
  */
 
 const { ipcMain } = require('electron');
-const googleAdsService = require('../../services/google-ads-service');
+const { googleAdsService } = require('../services-init');
 
 // ==========================================
 // Google Ads Configuration

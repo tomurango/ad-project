@@ -172,6 +172,7 @@
         </div>
       </div>
     </div>
+    </div>
 
     <!-- Google広告管理セクション -->
     <div class="section" id="google-ads-section">
@@ -545,6 +546,48 @@
           <div style="text-align: right; margin-top: 25px; display: flex; gap: 10px; justify-content: flex-end;">
             <button class="btn btn-secondary" onclick="resetProjectForm()">リセット</button>
             <button class="btn btn-primary" onclick="registerProject()">プロジェクト登録</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- プロジェクト編集モーダルオーバーレイ -->
+    <div id="editProjectModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; backdrop-filter: blur(4px);" onclick="closeEditProjectModal()">
+      <!-- モーダルコンテンツ -->
+      <div id="editProjectModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1001; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+        <div style="padding: 30px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <h3 style="margin: 0; font-size: 24px; color: var(--primary);">✏️ プロジェクト編集</h3>
+            <button class="btn btn-secondary" onclick="closeEditProjectModal()" style="font-size: 16px; padding: 6px 12px; background: transparent; border: none; color: #657786; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='#657786'">✖</button>
+          </div>
+
+          <input type="hidden" id="editProjectId">
+
+          <div class="form-row">
+            <label>プロジェクト名:</label>
+            <input type="text" id="editProjectName" placeholder="例: 私の素晴らしいアプリ">
+          </div>
+
+          <div class="form-row">
+            <label>説明:</label>
+            <textarea id="editProjectDescription" placeholder="プロジェクトの詳細説明を入力してください..." style="min-height: 100px; width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; resize: vertical;"></textarea>
+          </div>
+
+          <div class="form-row">
+            <label>カテゴリ:</label>
+            <select id="editProjectCategory">
+              <option value="web">Webアプリ</option>
+              <option value="mobile">モバイルアプリ</option>
+              <option value="desktop">デスクトップアプリ</option>
+              <option value="tool">開発ツール</option>
+              <option value="game">ゲーム</option>
+              <option value="other">その他</option>
+            </select>
+          </div>
+
+          <div style="text-align: right; margin-top: 25px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="closeEditProjectModal()">キャンセル</button>
+            <button class="btn btn-primary" onclick="saveProjectChanges()">変更を保存</button>
           </div>
         </div>
       </div>
@@ -1088,6 +1131,348 @@
     </div>
   </div>
 
+  <!-- ========================================
+       モーダル群（全画面共通）
+       ======================================== -->
+
+  <!-- プラン作成: プラットフォーム選択モーダル -->
+  <div id="platform-selection-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(4px);" onclick="closePlatformSelectionModal()">
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 90%; padding: 40px;" onclick="event.stopPropagation()">
+      <h2 style="margin: 0 0 20px 0; color: var(--primary);">📱 プラットフォームを選択</h2>
+      <p style="color: #657786; margin-bottom: 30px;">投稿先のプラットフォームを選択してください</p>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+        <div class="platform-card" onclick="selectPlatformForPlan('twitter')" style="padding: 30px; border: 2px solid #e1e8ed; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.2s;">
+          <div style="font-size: 48px; margin-bottom: 10px;">𝕏</div>
+          <div style="font-weight: 600; color: #333;">X (Twitter)</div>
+        </div>
+
+        <div class="platform-card" onclick="selectPlatformForPlan('instagram')" style="padding: 30px; border: 2px solid #e1e8ed; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.2s; opacity: 0.5;">
+          <div style="font-size: 48px; margin-bottom: 10px;">📷</div>
+          <div style="font-weight: 600; color: #333;">Instagram</div>
+          <div style="font-size: 12px; color: #657786; margin-top: 5px;">準備中</div>
+        </div>
+
+        <div class="platform-card" onclick="selectPlatformForPlan('facebook')" style="padding: 30px; border: 2px solid #e1e8ed; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.2s; opacity: 0.5;">
+          <div style="font-size: 48px; margin-bottom: 10px;">📘</div>
+          <div style="font-weight: 600; color: #333;">Facebook</div>
+          <div style="font-size: 12px; color: #657786; margin-top: 5px;">準備中</div>
+        </div>
+
+        <div class="platform-card" onclick="selectPlatformForPlan('linkedin')" style="padding: 30px; border: 2px solid #e1e8ed; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.2s; opacity: 0.5;">
+          <div style="font-size: 48px; margin-bottom: 10px;">💼</div>
+          <div style="font-weight: 600; color: #333;">LinkedIn</div>
+          <div style="font-size: 12px; color: #657786; margin-top: 5px;">準備中</div>
+        </div>
+      </div>
+
+      <div style="text-align: right; margin-top: 30px;">
+        <button onclick="closePlatformSelectionModal()" class="btn btn-secondary">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- プラン編集モーダル -->
+  <div id="plan-edit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(4px);" onclick="closePlanEditModal()">
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <div style="padding: 40px;">
+        <h2 style="margin: 0 0 10px 0; color: var(--primary);">✏️ プラン編集</h2>
+        <p style="color: #657786; margin-bottom: 30px;">プランの設定を変更できます</p>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">プラン名</label>
+          <input type="text" id="edit-plan-name" required style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">説明</label>
+          <textarea id="edit-plan-description" style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px; min-height: 80px; resize: vertical;"></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">投稿頻度</label>
+            <select id="edit-plan-frequency" onchange="updateFrequencySettings()" style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+              <option value="daily">毎日</option>
+              <option value="weekly">毎週</option>
+              <option value="monthly">毎月</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">投稿時刻</label>
+            <input type="time" id="edit-plan-time" required style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+          </div>
+        </div>
+
+        <div id="edit-plan-weekday-field" style="display: none; margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">曜日</label>
+          <select id="edit-plan-weekday" style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+            <option value="1">月曜日</option>
+            <option value="2">火曜日</option>
+            <option value="3">水曜日</option>
+            <option value="4">木曜日</option>
+            <option value="5">金曜日</option>
+            <option value="6">土曜日</option>
+            <option value="0">日曜日</option>
+          </select>
+        </div>
+
+        <div id="edit-plan-day-field" style="display: none; margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">日付</label>
+          <select id="edit-plan-day" style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+            <option value="1">1日</option>
+            <option value="2">2日</option>
+            <option value="3">3日</option>
+            <option value="4">4日</option>
+            <option value="5">5日</option>
+            <option value="6">6日</option>
+            <option value="7">7日</option>
+            <option value="8">8日</option>
+            <option value="9">9日</option>
+            <option value="10">10日</option>
+            <option value="11">11日</option>
+            <option value="12">12日</option>
+            <option value="13">13日</option>
+            <option value="14">14日</option>
+            <option value="15">15日</option>
+            <option value="16">16日</option>
+            <option value="17">17日</option>
+            <option value="18">18日</option>
+            <option value="19">19日</option>
+            <option value="20">20日</option>
+            <option value="21">21日</option>
+            <option value="22">22日</option>
+            <option value="23">23日</option>
+            <option value="24">24日</option>
+            <option value="25">25日</option>
+            <option value="26">26日</option>
+            <option value="27">27日</option>
+            <option value="28">28日</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="edit-plan-active" style="width: 18px; height: 18px; cursor: pointer;">
+            <span style="font-weight: 600; color: #374151;">このプランを有効にする</span>
+          </label>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">AIカスタムプロンプト</label>
+          <textarea id="edit-plan-custom-prompt" placeholder="AIに特別な指示を与える場合は入力してください" style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px; min-height: 100px; resize: vertical;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closePlanEditModal()" class="btn btn-secondary">キャンセル</button>
+          <button type="button" onclick="savePlanEdit(window.currentEditingPlan.planId)" class="btn btn-primary">✅ 変更を保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 手動投稿作成モーダル -->
+  <div id="manual-post-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(4px);" onclick="closeManualPostModal()">
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <div style="padding: 40px;">
+        <h2 style="margin: 0 0 10px 0; color: var(--primary);">✍️ 手動投稿作成</h2>
+        <p style="color: #657786; margin-bottom: 30px;">投稿内容とスケジュールを設定してください</p>
+
+        <form id="manual-post-form" onsubmit="submitManualPost(event)">
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">投稿内容</label>
+            <textarea id="manual-post-content" placeholder="投稿内容を入力..." required style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px; min-height: 120px; resize: vertical;"></textarea>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">プラットフォーム</label>
+            <select id="manual-post-platform" required style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+              <option value="twitter">X (Twitter)</option>
+              <option value="instagram" disabled>Instagram（準備中）</option>
+              <option value="facebook" disabled>Facebook（準備中）</option>
+              <option value="linkedin" disabled>LinkedIn（準備中）</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">投稿日</label>
+              <input type="date" id="manual-post-date" required style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+            </div>
+
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">投稿時刻</label>
+              <input type="time" id="manual-post-time" value="10:00" required style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+            <button type="button" onclick="closeManualPostModal()" class="btn btn-secondary">キャンセル</button>
+            <button type="submit" class="btn btn-primary">✅ 投稿作成</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 投稿編集モーダル -->
+  <div id="edit-post-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(4px);" onclick="closeEditPostModal()">
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <div style="padding: 40px;">
+        <h2 style="margin: 0 0 10px 0; color: var(--primary);">✏️ 投稿編集</h2>
+        <p style="color: #657786; margin-bottom: 30px;">投稿内容とスケジュールを編集できます</p>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">投稿内容</label>
+          <textarea id="edit-post-content" placeholder="投稿内容を入力..." required style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px; min-height: 120px; resize: vertical;"></textarea>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">投稿予定日時</label>
+          <input type="datetime-local" id="edit-post-datetime" required style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+          <button type="button" onclick="closeEditPostModal()" class="btn btn-secondary">キャンセル</button>
+          <button type="button" onclick="saveEditPostChanges()" class="btn btn-primary">✅ 変更を保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- プラットフォーム選択モーダル -->
+  <div id="platform-selection-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(4px);" onclick="closePlatformSelectionModal()">
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <div style="padding: 40px;">
+        <h2 style="margin: 0 0 10px 0; color: var(--primary);">📱 プラットフォーム選択</h2>
+        <p style="color: #657786; margin-bottom: 30px;">新しいプランを作成するプラットフォームを選択してください</p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px;">
+          <button onclick="selectPlatformForPlan('twitter')" class="btn btn-primary" style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">𝕏</span>
+            <span>X (Twitter)</span>
+          </button>
+          <button onclick="selectPlatformForPlan('instagram')" class="btn btn-secondary" disabled style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0.5;">
+            <span style="font-size: 24px;">📷</span>
+            <span>Instagram</span>
+            <span style="font-size: 10px;">準備中</span>
+          </button>
+          <button onclick="selectPlatformForPlan('facebook')" class="btn btn-secondary" disabled style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0.5;">
+            <span style="font-size: 24px;">👥</span>
+            <span>Facebook</span>
+            <span style="font-size: 10px;">準備中</span>
+          </button>
+          <button onclick="selectPlatformForPlan('linkedin')" class="btn btn-secondary" disabled style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: 0.5;">
+            <span style="font-size: 24px;">💼</span>
+            <span>LinkedIn</span>
+            <span style="font-size: 10px;">準備中</span>
+          </button>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="button" onclick="closePlatformSelectionModal()" class="btn btn-secondary">キャンセル</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- プラン作成モーダル -->
+  <div id="plan-creation-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(4px);" onclick="closePlanCreationModal()">
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <div style="padding: 40px;">
+        <h2 style="margin: 0 0 10px 0; color: var(--primary);">➕ <span id="plan-platform-title">プラン作成</span></h2>
+        <p style="color: #657786; margin-bottom: 30px;">投稿プランの詳細を設定してください</p>
+
+        <form id="plan-creation-form" onsubmit="submitPlanCreation(event)">
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">プラン名</label>
+            <input type="text" id="plan-name" placeholder="例: 毎日の進捗報告" required style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">説明</label>
+            <textarea id="plan-description" placeholder="このプランの目的や内容を入力..." style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px; min-height: 80px; resize: vertical;"></textarea>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">投稿頻度</label>
+              <select id="plan-frequency" onchange="updateFrequencySettings()" style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+                <option value="daily">毎日</option>
+                <option value="weekly">毎週</option>
+                <option value="monthly">毎月</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">投稿時刻</label>
+              <input type="time" id="plan-time" value="10:00" required style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+            </div>
+          </div>
+
+          <div id="plan-weekday-field" style="display: none; margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">曜日</label>
+            <select id="plan-weekday" style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+              <option value="0">日曜日</option>
+              <option value="1" selected>月曜日</option>
+              <option value="2">火曜日</option>
+              <option value="3">水曜日</option>
+              <option value="4">木曜日</option>
+              <option value="5">金曜日</option>
+              <option value="6">土曜日</option>
+            </select>
+          </div>
+
+          <div id="plan-day-field" style="display: none; margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">日にち</label>
+            <select id="plan-day" style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px; font-size: 14px;">
+              <option value="1" selected>1日</option>
+              <option value="2">2日</option>
+              <option value="3">3日</option>
+              <option value="4">4日</option>
+              <option value="5">5日</option>
+              <option value="6">6日</option>
+              <option value="7">7日</option>
+              <option value="8">8日</option>
+              <option value="9">9日</option>
+              <option value="10">10日</option>
+              <option value="11">11日</option>
+              <option value="12">12日</option>
+              <option value="13">13日</option>
+              <option value="14">14日</option>
+              <option value="15">15日</option>
+              <option value="16">16日</option>
+              <option value="17">17日</option>
+              <option value="18">18日</option>
+              <option value="19">19日</option>
+              <option value="20">20日</option>
+              <option value="21">21日</option>
+              <option value="22">22日</option>
+              <option value="23">23日</option>
+              <option value="24">24日</option>
+              <option value="25">25日</option>
+              <option value="26">26日</option>
+              <option value="27">27日</option>
+              <option value="28">28日</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">AIカスタムプロンプト</label>
+            <textarea id="plan-custom-prompt" placeholder="AIに特別な指示を与える場合は入力してください（オプション）" style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px; min-height: 100px; resize: vertical;"></textarea>
+            <p style="font-size: 12px; color: #657786; margin-top: 5px;">例: カジュアルな文体で、絵文字を適度に使用してください</p>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+            <button type="button" onclick="closePlanCreationModal()" class="btn btn-secondary">キャンセル</button>
+            <button type="submit" class="btn btn-primary">✅ プラン作成</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- JavaScript Modules -->
   <!-- 1. Configuration and Global Variables -->
   <script src="src/renderer/scripts/config.js"></script>
@@ -1105,9 +1490,9 @@
 
   <!-- 5. Core Feature Modules -->
   <script src="src/renderer/scripts/auth.js"></script>
-  <script src="src/renderer/scripts/projects.js"></script>
-  <script src="src/renderer/scripts/posts.js"></script>
-  <script src="src/renderer/scripts/plans.js"></script>
+  <script type="module" src="src/renderer/scripts/projects.js"></script>
+  <script type="module" src="src/renderer/scripts/posts.js"></script>
+  <script type="module" src="src/renderer/scripts/plans.js"></script>
 
   <!-- 6. Platform Integration -->
   <script src="src/renderer/scripts/platforms.js"></script>

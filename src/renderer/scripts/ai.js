@@ -1430,7 +1430,8 @@ function initializeAISelectors() {
 // ========== loadProjectDetailData ==========
 async function loadProjectDetailData(projectId) {
       try {
-        // プランと投稿を並行して読み込み
+        // スクリプト読み込み順序により、関数は直接グローバルスコープで利用可能
+        // plans.js と posts.js で定義された関数を直接呼び出し
         const [plansResult, postsResult] = await Promise.all([
           loadProjectPlans(projectId),
           loadProjectPosts(projectId)
@@ -1438,7 +1439,7 @@ async function loadProjectDetailData(projectId) {
 
         console.log('📊 プロジェクト詳細データ読み込み完了');
         return { success: true };
-        
+
       } catch (error) {
         console.error('❌ プロジェクト詳細データ読み込みエラー:', error);
         return { success: false, error: error.message };

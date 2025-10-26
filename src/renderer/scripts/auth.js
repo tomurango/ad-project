@@ -46,7 +46,9 @@ async function checkAuthState() {
 
 // 認証済みUI表示
 function showAuthenticatedUI() {
-  document.getElementById('auth-section').style.display = 'none';
+  const authSection = document.getElementById('auth-section');
+  authSection.style.display = 'none';
+
   document.getElementById('user-info').style.display = 'block';
   document.getElementById('user-name').textContent = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'ユーザー';
   document.getElementById('user-email').textContent = currentUser?.email || '';

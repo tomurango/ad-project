@@ -9,7 +9,7 @@
  */
 
 const { ipcMain } = require('electron');
-const firebaseService = require('../../services/firebase-service');
+const { firebaseService } = require('../services-init');
 
 // ==========================================
 // Firebase Authentication 基本IPCハンドラー

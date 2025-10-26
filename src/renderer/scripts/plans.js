@@ -18,13 +18,46 @@
  */
 
 // ========================================
+// ES Modules インポート
+// ========================================
+
+import {
+  IPC_CHANNELS,
+  PLATFORMS,
+  FREQUENCIES,
+  PLATFORM_LABELS,
+  FREQUENCY_LABELS,
+  getPlatformLabel,
+  getFrequencyLabel
+} from './modules/constants.js';
+
+import {
+  formatDateTime,
+  formatTime,
+  toDateString,
+  toTimeString
+} from './modules/date-utils.js';
+
+import {
+  getElementById,
+  showModal,
+  hideModal,
+  getInputValue,
+  setInputValue
+} from './modules/dom-utils.js';
+
+// ヘルパー関数は constants.js から import済み
+// getPlatformLabel, getFrequencyLabel を使用
+
+// ========================================
 // プランデータ読み込み・表示
 // ========================================
 
 /**
  * プロジェクトのプラン一覧を読み込み・表示
+ * @export
  */
-async function loadProjectPlans(projectId) {
+export async function loadProjectPlans(projectId) {
   try {
     console.log('📋 プラン一覧読み込み開始:', projectId);
 
@@ -84,7 +117,7 @@ function displayPlans(plans) {
           <h3>${plan.name}</h3>
           <div class="plan-status">
             <span class="status-badge ${activeClass}">${activeText}</span>
-            <span class="platform-badge">${getPlatformDisplayName(plan.platform)}</span>
+            <span class="platform-badge">${getPlatformLabel(plan.platform)}</span>
           </div>
         </div>
 
@@ -93,7 +126,7 @@ function displayPlans(plans) {
         <div class="plan-schedule">
           <div class="schedule-item">
             <span class="schedule-label">頻度:</span>
-            <span>${getFrequencyText(plan.schedule.frequency)}</span>
+            <span>${getFrequencyLabel(plan.schedule.frequency)}</span>
           </div>
           <div class="schedule-item">
             <span class="schedule-label">投稿時刻:</span>
@@ -132,8 +165,9 @@ function displayPlansError(errorMessage) {
 
 /**
  * 新規プラン作成（モーダル表示）
+ * @export
  */
-function createNewPlan() {
+export function createNewPlan() {
   if (!currentProjectId) {
     alert('プロジェクトが選択されていません');
     return;
@@ -148,15 +182,17 @@ function createNewPlan() {
 
 /**
  * プラットフォーム選択モーダルを閉じる
+ * @export
  */
-function closePlatformSelectionModal() {
+export function closePlatformSelectionModal() {
   document.getElementById('platform-selection-modal').style.display = 'none';
 }
 
 /**
  * プラットフォーム選択後のプラン作成
+ * @export
  */
-function selectPlatformForPlan(platform) {
+export function selectPlatformForPlan(platform) {
   // プラットフォーム選択モーダルを閉じる
   closePlatformSelectionModal();
 
@@ -172,7 +208,7 @@ function selectPlatformForPlan(platform) {
  */
 function initializePlanCreationModal(platform) {
   // プラットフォームタイトルを設定
-  document.getElementById('plan-platform-title').textContent = getPlatformDisplayName(platform);
+  document.getElementById('plan-platform-title').textContent = getPlatformLabel(platform);
 
   // フォームをリセット
   document.getElementById('plan-name').value = '';
@@ -191,22 +227,35 @@ function initializePlanCreationModal(platform) {
 
 /**
  * プラン作成モーダルを閉じる
+ * @export
  */
-function closePlanCreationModal() {
+export function closePlanCreationModal() {
   document.getElementById('plan-creation-modal').style.display = 'none';
   window.selectedPlatform = null;
 }
 
 /**
  * プラン作成フォームを送信
+ * @export
  */
-async function submitPlanCreation(event) {
+// プラン作成の重複実行防止フラグ
+let isCreatingPlan = false;
+
+export async function submitPlanCreation(event) {
   event.preventDefault();
+
+  // 重複実行防止
+  if (isCreatingPlan) {
+    console.log('⚠️ プラン作成処理が既に実行中です');
+    return;
+  }
 
   if (!currentProjectId || !window.selectedPlatform) {
     alert('プロジェクトまたはプラットフォームが選択されていません');
     return;
   }
+
+  isCreatingPlan = true;
 
   try {
     // フォームデータ収集
@@ -216,6 +265,7 @@ async function submitPlanCreation(event) {
     const validationResult = validatePlanData(planData);
     if (!validationResult.valid) {
       alert('❌ ' + validationResult.error);
+      isCreatingPlan = false;
       return;
     }
 
@@ -236,6 +286,8 @@ async function submitPlanCreation(event) {
   } catch (error) {
     console.error('❌ プラン作成エラー:', error);
     alert('❌ エラーが発生しました: ' + error.message);
+  } finally {
+    isCreatingPlan = false;
   }
 }
 
@@ -269,15 +321,22 @@ function collectPlanFormData() {
 
   // プラットフォーム固有の設定
   if (platform === 'instagram') {
-    planData.instagram = {
-      includeHashtags: document.getElementById('instagram-hashtags').checked,
-      imageSource: document.getElementById('instagram-image-source').value
-    };
+    const hashtagsEl = document.getElementById('instagram-hashtags');
+    const imageSourceEl = document.getElementById('instagram-image-source');
+    if (hashtagsEl && imageSourceEl) {
+      planData.instagram = {
+        includeHashtags: hashtagsEl.checked,
+        imageSource: imageSourceEl.value
+      };
+    }
   } else if (platform === 'linkedin') {
-    planData.linkedin = {
-      postType: document.getElementById('linkedin-post-type').value,
-      includeProfessionalTone: true
-    };
+    const postTypeEl = document.getElementById('linkedin-post-type');
+    if (postTypeEl) {
+      planData.linkedin = {
+        postType: postTypeEl.value,
+        includeProfessionalTone: true
+      };
+    }
   }
 
   return planData;
@@ -308,8 +367,9 @@ function validatePlanData(planData) {
 
 /**
  * プランを編集
+ * @export
  */
-async function editPlan(planId) {
+export async function editPlan(planId) {
   if (!currentProjectId) {
     alert('プロジェクトが選択されていません');
     return;
@@ -368,20 +428,33 @@ function showPlanEditModal(plan) {
 
 /**
  * プラン編集モーダルを閉じる
+ * @export
  */
-function closePlanEditModal() {
+export function closePlanEditModal() {
   document.getElementById('plan-edit-modal').style.display = 'none';
   window.currentEditingPlan = null;
 }
 
 /**
  * プラン編集を保存
+ * @export
  */
-async function savePlanEdit(planId) {
+// プラン編集の重複実行防止フラグ
+let isSavingPlan = false;
+
+export async function savePlanEdit(planId) {
+  // 重複実行防止
+  if (isSavingPlan) {
+    console.log('⚠️ プラン保存処理が既に実行中です');
+    return;
+  }
+
   if (!currentProjectId) {
     alert('プロジェクトが選択されていません');
     return;
   }
+
+  isSavingPlan = true;
 
   try {
     const frequency = document.getElementById('edit-plan-frequency').value;
@@ -411,6 +484,7 @@ async function savePlanEdit(planId) {
     const validationResult = validatePlanData(updateData);
     if (!validationResult.valid) {
       alert('❌ ' + validationResult.error);
+      isSavingPlan = false;
       return;
     }
 
@@ -432,13 +506,16 @@ async function savePlanEdit(planId) {
   } catch (error) {
     console.error('❌ プラン更新エラー:', error);
     alert('❌ エラーが発生しました: ' + error.message);
+  } finally {
+    isSavingPlan = false;
   }
 }
 
 /**
  * プランを削除
+ * @export
  */
-async function deletePlan(planId) {
+export async function deletePlan(planId) {
   if (!confirm('このプランを削除しますか？\n\nこのプランに紐づく投稿もすべて削除されます。')) {
     return;
   }
@@ -525,19 +602,7 @@ function getPlatformDefaultTime(platform) {
   return defaults[platform] || '10:00';
 }
 
-/**
- * プラットフォーム表示名を取得
- */
-function getPlatformDisplayName(platform) {
-  const names = {
-    'twitter': 'X (Twitter)',
-    'instagram': 'Instagram',
-    'linkedin': 'LinkedIn',
-    'facebook': 'Facebook',
-    'youtube': 'YouTube'
-  };
-  return names[platform] || platform;
-}
+// getPlatformDisplayName は constants.js の getPlatformLabel として import済み
 
 // ========================================
 // スケジュール設定
@@ -545,8 +610,9 @@ function getPlatformDisplayName(platform) {
 
 /**
  * 頻度設定を更新（週次/月次の追加フィールド表示）
+ * @export
  */
-function updateFrequencySettings() {
+export function updateFrequencySettings() {
   const frequency = document.getElementById('edit-plan-frequency')?.value ||
                     document.getElementById('plan-frequency')?.value;
 
@@ -569,17 +635,7 @@ function updateFrequencySettings() {
   }
 }
 
-/**
- * 頻度のテキストを取得
- */
-function getFrequencyText(frequency) {
-  const texts = {
-    'daily': '毎日',
-    'weekly': '毎週',
-    'monthly': '毎月'
-  };
-  return texts[frequency] || frequency;
-}
+// getFrequencyText は constants.js の getFrequencyLabel として import済み
 
 // ========================================
 // UI補助関数
@@ -937,4 +993,25 @@ async function savePlanCustomPrompt(customPrompt) {
     console.error('❌ カスタムプロンプト保存エラー:', error);
     return { success: false, error: error.message };
   }
+}
+
+// ========================================
+// ES Modules: HTML onclick用にwindowに公開
+// ========================================
+
+// HTML onclick属性から呼び出される関数をwindowに公開
+if (typeof window !== 'undefined') {
+  window.loadProjectPlans = loadProjectPlans;
+  window.createNewPlan = createNewPlan;
+  window.closePlatformSelectionModal = closePlatformSelectionModal;
+  window.selectPlatformForPlan = selectPlatformForPlan;
+  window.closePlanCreationModal = closePlanCreationModal;
+  window.submitPlanCreation = submitPlanCreation;
+  window.editPlan = editPlan;
+  window.closePlanEditModal = closePlanEditModal;
+  window.savePlanEdit = savePlanEdit;
+  window.deletePlan = deletePlan;
+  window.updateFrequencySettings = updateFrequencySettings;
+
+  console.log('✅ plans.js (ES Module) loaded and functions exposed to window');
 }

@@ -400,9 +400,9 @@ ipcMain.handle('firebase-get-project-plans', async (event, projectId) => {
 });
 
 // プラン作成
-ipcMain.handle('firebase-create-plan', async (event, planData) => {
+ipcMain.handle('firebase-create-plan', async (event, { projectId, planData }) => {
   try {
-    const result = await firebaseService.createPlan(planData);
+    const result = await firebaseService.createPlan(projectId, planData);
     return result;
   } catch (error) {
     return { success: false, error: error.message };
@@ -410,7 +410,7 @@ ipcMain.handle('firebase-create-plan', async (event, planData) => {
 });
 
 // プラン更新
-ipcMain.handle('firebase-update-plan', async (event, projectId, planId, updateData) => {
+ipcMain.handle('firebase-update-plan', async (event, { projectId, planId, updateData }) => {
   try {
     const result = await firebaseService.updatePlan(projectId, planId, updateData);
     return result;
@@ -420,9 +420,9 @@ ipcMain.handle('firebase-update-plan', async (event, projectId, planId, updateDa
 });
 
 // プラン削除
-ipcMain.handle('firebase-delete-plan', async (event, planId) => {
+ipcMain.handle('firebase-delete-plan', async (event, { projectId, planId }) => {
   try {
-    const result = await firebaseService.deletePlan(planId);
+    const result = await firebaseService.deletePlan(projectId, planId);
     return result;
   } catch (error) {
     return { success: false, error: error.message };
@@ -430,7 +430,7 @@ ipcMain.handle('firebase-delete-plan', async (event, planId) => {
 });
 
 // 個別プランを取得
-ipcMain.handle('firebase-get-plan', async (event, projectId, planId) => {
+ipcMain.handle('firebase-get-plan', async (event, { projectId, planId }) => {
   try {
     const result = await firebaseService.getPlan(projectId, planId);
     return result;
@@ -570,7 +570,7 @@ ipcMain.handle('update-plan-auto-post-status', async (event, { projectId, planId
 });
 
 // プラン詳細情報を取得
-ipcMain.handle('get-plan-details', async (event, projectId, planId) => {
+ipcMain.handle('get-plan-details', async (event, { projectId, planId }) => {
   try {
     if (!firebaseService.isLoggedIn()) {
       return { success: false, error: 'ログインが必要です' };
@@ -603,7 +603,7 @@ ipcMain.handle('firebase-get-project-posts', async (event, projectId) => {
 });
 
 // 個別投稿を取得
-ipcMain.handle('firebase-get-post', async (event, projectId, planId, postId) => {
+ipcMain.handle('firebase-get-post', async (event, { projectId, planId, postId }) => {
   try {
     const result = await firebaseService.getPost(projectId, planId, postId);
     return result;
@@ -623,7 +623,7 @@ ipcMain.handle('firebase-create-post', async (event, postData) => {
 });
 
 // 投稿更新
-ipcMain.handle('firebase-update-post', async (event, projectId, planId, postId, updateData) => {
+ipcMain.handle('firebase-update-post', async (event, { projectId, planId, postId, updateData }) => {
   try {
     const result = await firebaseService.updatePost(projectId, planId, postId, updateData);
     return result;
@@ -633,7 +633,7 @@ ipcMain.handle('firebase-update-post', async (event, projectId, planId, postId, 
 });
 
 // 投稿削除
-ipcMain.handle('firebase-delete-post', async (event, postId) => {
+ipcMain.handle('firebase-delete-post', async (event, { projectId, planId, postId }) => {
   try {
     const result = await firebaseService.deletePost(postId);
     return result;
@@ -804,7 +804,7 @@ ipcMain.handle('save-conversation', async (event, conversationData) => {
 });
 
 // 投稿の会話記録を取得
-ipcMain.handle('get-post-conversations', async (event, projectId, planId, postId) => {
+ipcMain.handle('get-post-conversations', async (event, { projectId, planId, postId }) => {
   try {
     if (!firebaseService.isLoggedIn()) {
       return { success: false, error: 'ログインが必要です' };
@@ -842,7 +842,7 @@ ipcMain.handle('get-plan-conversations', async (event, planId, limit = 20) => {
 });
 
 // 会話記録を更新
-ipcMain.handle('update-conversation', async (event, projectId, planId, postId, conversationId, updateData) => {
+ipcMain.handle('update-conversation', async (event, { projectId, planId, postId, conversationId, updateData }) => {
   try {
     if (!firebaseService.isLoggedIn()) {
       return { success: false, error: 'ログインが必要です' };

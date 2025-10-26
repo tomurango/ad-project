@@ -735,14 +735,29 @@ class FirebaseService {
   /**
    * プラン削除
    */
-  async deletePlan(planId) {
+  async deletePlan(projectId, planId) {
     try {
       this._checkInitialized();
       this._checkAuthenticated();
 
-      const planRef = this.firebaseFirestore.doc(this.db, 'plans', planId);
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('ユーザー認証が必要です');
+      }
+
+      // 階層構造: users/{userId}/projects/{projectId}/plans/{planId}
+      const planRef = this.firebaseFirestore.doc(
+        this.db,
+        'users',
+        currentUser.uid,
+        'projects',
+        projectId,
+        'plans',
+        planId
+      );
+
       await this.firebaseFirestore.deleteDoc(planRef);
-      
+
       console.log('✅ プラン削除成功:', planId);
       return { success: true, id: planId };
 

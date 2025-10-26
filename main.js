@@ -23,20 +23,27 @@ const { createWindow } = require('./src/main/window');
 // サービス初期化
 const {
   initializeAllServices,
-  twitterOAuthService,
+  ollamaService,
+  aiServiceManager,
   firebaseService,
+  twitterService,
+  twitterOAuthService,
+  googleAdsService,
+  youtubeDataService,
+  multiPlatformAuthManager,
+  getMigrationService,
   setCallbackServer
 } = require('./src/main/services-init');
 
-// IPCハンドラー（読み込むだけで自動登録される）
-require('./src/main/ipc/auth');
-require('./src/main/ipc/ai');
-require('./src/main/ipc/firestore');
-require('./src/main/ipc/twitter');
-require('./src/main/ipc/google-ads');
-require('./src/main/ipc/youtube');
-require('./src/main/ipc/platforms');
-require('./src/main/ipc/system');
+// IPCハンドラー（サービス初期化後に設定）
+const authIPC = require('./src/main/ipc/auth');
+const aiIPC = require('./src/main/ipc/ai');
+const firestoreIPC = require('./src/main/ipc/firestore');
+const twitterIPC = require('./src/main/ipc/twitter');
+const googleAdsIPC = require('./src/main/ipc/google-ads');
+const youtubeIPC = require('./src/main/ipc/youtube');
+const platformsIPC = require('./src/main/ipc/platforms');
+const systemIPC = require('./src/main/ipc/system');
 
 // ==========================================
 // Twitter OAuth コールバックサーバー
@@ -154,6 +161,31 @@ app.whenReady().then(async () => {
 
   // 全サービス初期化
   await initializeAllServices();
+
+  // IPCハンドラーにサービスを注入
+  if (aiIPC.initializeServices) {
+    aiIPC.initializeServices({
+      ollamaService,
+      aiServiceManager,
+      firebaseService
+    });
+  }
+
+  if (firestoreIPC.initializeServices) {
+    firestoreIPC.initializeServices({
+      firebaseService,
+      aiServiceManager,
+      migrationService: getMigrationService()
+    });
+  }
+
+  if (twitterIPC.initializeServices) {
+    twitterIPC.initializeServices({
+      twitterService,
+      twitterOAuthService,
+      firebaseService
+    });
+  }
 
   // Twitter OAuthコールバックサーバー起動
   startTwitterOAuthCallbackServer();
