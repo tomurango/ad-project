@@ -28,6 +28,7 @@ const {
   firebaseService,
   twitterService,
   twitterOAuthService,
+  blueskyService,
   googleAdsService,
   youtubeDataService,
   multiPlatformAuthManager,
@@ -40,6 +41,7 @@ const authIPC = require('./src/main/ipc/auth');
 const aiIPC = require('./src/main/ipc/ai');
 const firestoreIPC = require('./src/main/ipc/firestore');
 const twitterIPC = require('./src/main/ipc/twitter');
+const blueskyIPC = require('./src/main/ipc/bluesky');
 const googleAdsIPC = require('./src/main/ipc/google-ads');
 const youtubeIPC = require('./src/main/ipc/youtube');
 const platformsIPC = require('./src/main/ipc/platforms');
@@ -183,6 +185,13 @@ app.whenReady().then(async () => {
     twitterIPC.initializeServices({
       twitterService,
       twitterOAuthService,
+      firebaseService
+    });
+  }
+
+  if (blueskyIPC.initializeServices) {
+    blueskyIPC.initializeServices({
+      blueskyService,
       firebaseService
     });
   }

@@ -10,16 +10,16 @@ Electron + Firebase + AI統合の広告配信プラットフォームに、複�
 #### 1. AI Service Manager作成
 - **フロントエンド**: `/src/services/ai-service-manager.js`
 - **Cloud Functions**: `/functions/src/ai-service-manager.js`
-- **対応AI**: Ollama, OpenAI, Claude, Gemini
+- **対応AI**: Gemini (デフォルト), OpenAI, Claude
 - **統一API**: `generateText(prompt, options)` で全AI対応
 
 #### 2. アプリヘッダーにAI選択UI
 - **位置**: ログイン後のみヘッダー右側に表示
 - **UI構成**:
   ```
-  🤖 AI: [Ollama ▼] ⚙️
+  🤖 AI: [Gemini ▼] ⚙️
   ```
-- **表示制御**: 
+- **表示制御**:
   - ログイン前: `display: none`
   - ログイン後: `display: flex`
 
@@ -31,17 +31,16 @@ Electron + Firebase + AI統合の広告配信プラットフォームに、複�
 
 #### 4. 料金体系の明確化
 ```
-🟢 Ollama (無料・ローカル)
+💰 Gemini (有料) - 2.0 Flash (無料枠あり: 月60リクエスト/分)
 💰 OpenAI (有料) - GPT-3.5 ($0.001/1K), GPT-4 ($0.03/1K)
 💰 Claude (有料) - Haiku ($0.25/1M), Sonnet ($3/1M), Opus ($15/1M)
-💰 Gemini (有料) - Pro (無料枠あり)
 ```
 
 #### 5. 既存AI呼び出しの統一化
 - **main.js**: 全AI機能を統一APIに変更
 - **auto-post-manager.js**: AI Service Manager使用
 - **autoPostProcessor.js**: Cloud Functions対応
-- **後方互換性**: 既存のOllama呼び出しを保持
+- **クラウド対応**: Cloud Functions互換プロバイダーのみサポート
 
 ### 🔧 LocalStorage→Firestore移行完了 (2025-09-29)
 
@@ -1844,3 +1843,122 @@ const {
 **最終更新**: 2025-10-24
 **実装者**: Claude Code AI Assistant
 **状態**: **main.jsリファクタリング Phase 2完了** - 完全モジュール化達成 🎉
+
+## 🚀 2025-10-28 更新: AI設定システム統一化 - Ollama削除とGeminiデフォルト化
+
+### ✅ 実装完了した改善
+
+#### 1. AIプロバイダーの整理・統一
+- **Ollama完全削除**: ローカル依存のOllamaを削除し、クラウドAIのみサポート
+- **対応プロバイダー**: Gemini (デフォルト)、OpenAI、Claude
+- **デフォルト変更**: Ollama → Gemini に変更
+
+#### 2. プロバイダーリストの一元管理
+**問題点**: HTMLとJavaScriptでプロバイダーリストが重複定義されていた
+**解決策**: AI Service Managerで一元管理
+
+```javascript
+// AI Service Manager (共通定義)
+this.config = {
+  gemini: { ... },
+  openai: { ... },
+  claude: { ... }
+};
+
+// UI生成時は動的に取得
+const providers = aiServiceManager.getAvailableProviders();
+```
+
+**効果**:
+- プロバイダー追加・削除が1箇所の編集で完了
+- メイン画面と詳細設定モーダルで常に同じリスト表示
+- コードの保守性向上
+
+#### 3. 古い設定データの自動マイグレーション
+**問題点**: Firestoreに保存された古い設定に`ollama`が含まれる
+**解決策**: 設定読み込み時に自動除外
+
+**実装箇所**:
+- `/src/services/ai-service-manager.js` (行548-552): メイン版
+- `/src/renderer/scripts/ai.js` (行1199-1204, 1242-1246): フォールバック版
+
+```javascript
+// Ollamaを除外（サポート終了）
+if (loadedConfig.ollama) {
+  delete loadedConfig.ollama;
+  console.log('🔄 Ollama設定を削除しました（サポート終了）');
+}
+```
+
+#### 4. UI表示の統一
+- **メイン画面**: `index.html` - Ollamaオプション削除、Geminiをデフォルト表示
+- **詳細設定モーダル**: 動的生成により自動的にGemini、OpenAI、Claudeのみ表示
+- **設定フォーム**: Ollamaフォーム削除、Geminiフォームを最初に配置
+
+### 🔧 主要修正ファイル
+
+#### フロントエンド
+- `/src/services/ai-service-manager.js`
+  - `this.config` からOllama削除
+  - `generateText()` からOllamaケース削除
+  - `isProviderConfigured()` 簡素化
+  - `loadConfigFromFirestore()` でOllama自動除外
+
+- `/src/renderer/scripts/ai.js`
+  - フォールバック版AI Service ManagerからOllama削除
+  - `generateProviderConfigForm()` でOllamaフォーム削除
+  - `saveAIConfig()` でOllamaケース削除
+  - エラーハンドリングからOllama特定メッセージ削除
+
+- `/index.html`
+  - メイン画面AIプロバイダー選択からOllama削除
+  - デフォルト表示を"Gemini"に変更
+
+#### Cloud Functions
+- `/functions/src/ai-service-manager.js`
+  - `this.config` からOllama削除
+  - `generateText()` からOllamaケース削除
+  - `isProviderConfigured()` 簡素化
+
+### 📊 技術的詳細
+
+#### プロバイダー利用可能性
+| Provider | Frontend | Cloud Functions | 理由 |
+|----------|----------|-----------------|------|
+| **Gemini** | ✅ | ✅ | クラウドAPIのため |
+| **OpenAI** | ✅ | ✅ | クラウドAPIのため |
+| **Claude** | ✅ | ✅ | クラウドAPIのため |
+| ~~Ollama~~ | ❌ | ❌ | ローカル依存のため削除 |
+
+#### 設定読み込みフロー
+```
+1. ユーザーログイン
+2. Firestoreから設定読み込み
+3. Ollama設定があれば自動削除 ← NEW!
+4. 残りの設定をマージ
+5. デフォルトプロバイダー: Gemini
+```
+
+### 🎯 実装効果
+
+1. **シンプルさの向上**
+   - クラウドAIのみに統一
+   - ローカル環境依存の問題を排除
+
+2. **保守性の向上**
+   - プロバイダーリストの一元管理
+   - 設定の自動マイグレーション
+
+3. **ユーザー体験の向上**
+   - デフォルトで利用可能なGemini
+   - 設定画面の混乱解消
+
+4. **将来性の確保**
+   - Cloud Functions完全対応
+   - 新規プロバイダー追加が容易
+
+---
+
+**最終更新**: 2025-10-28
+**実装者**: Claude Code AI Assistant
+**状態**: **AI設定システム統一化完了** - Ollama削除、Geminiデフォルト化、プロバイダーリスト一元管理達成 🎉

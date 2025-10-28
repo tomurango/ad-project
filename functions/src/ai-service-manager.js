@@ -10,10 +10,10 @@ class AIServiceManager {
   constructor() {
     this.currentProvider = 'gemini'; // Cloud FunctionsではGeminiをデフォルト
     this.config = {
-      ollama: {
-        baseUrl: 'http://localhost:11434',
-        model: 'qwen2.5:0.5b',
-        cloudAvailable: false
+      gemini: {
+        apiKey: '', // Firestoreから読み込む
+        model: 'gemini-2.0-flash', // 2.0安定版を使用（2.5はプレビュー）
+        cloudAvailable: true
       },
       openai: {
         apiKey: '', // Firestoreから読み込む
@@ -23,11 +23,6 @@ class AIServiceManager {
       claude: {
         apiKey: '', // Firestoreから読み込む
         model: 'claude-3-haiku-20240307',
-        cloudAvailable: true
-      },
-      gemini: {
-        apiKey: '', // Firestoreから読み込む
-        model: 'gemini-2.0-flash', // 2.0安定版を使用（2.5はプレビュー）
         cloudAvailable: true
       }
     };
@@ -67,16 +62,8 @@ class AIServiceManager {
    */
   isProviderConfigured(provider) {
     const config = this.config[provider];
-    switch (provider) {
-      case 'ollama':
-        return true; // ローカル環境なので常に利用可能
-      case 'openai':
-      case 'claude':
-      case 'gemini':
-        return config.apiKey && config.apiKey.length > 0;
-      default:
-        return false;
-    }
+    if (!config) return false;
+    return config.apiKey && config.apiKey.length > 0;
   }
 
   /**
@@ -84,18 +71,20 @@ class AIServiceManager {
    */
   async generateText(prompt, options = {}) {
     const provider = options.provider || this.currentProvider;
-    
+
     switch (provider) {
-      case 'ollama':
-        return this.generateWithOllama(prompt, options);
+      case 'gemini':
+        return this.generateWithGemini(prompt, options);
       case 'openai':
         return this.generateWithOpenAI(prompt, options);
       case 'claude':
         return this.generateWithClaude(prompt, options);
-      case 'gemini':
-        return this.generateWithGemini(prompt, options);
       default:
-        throw new Error(`Unsupported provider: ${provider}`);
+        return {
+          success: false,
+          error: `未対応のAIプロバイダーです: ${provider}`,
+          provider: provider
+        };
     }
   }
 

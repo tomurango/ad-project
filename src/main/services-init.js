@@ -9,6 +9,7 @@ const aiServiceManager = require('../services/ai-service-manager');
 const firebaseService = require('../services/firebase-service');
 const twitterService = require('../services/twitter-service');
 const twitterOAuthService = require('../services/twitter-oauth-service');
+const { getBlueskyService } = require('../services/bluesky-service');
 const googleAdsService = require('../services/google-ads-service');
 const youtubeDataService = require('../services/youtube-data-service');
 const multiPlatformAuthManager = require('../services/multi-platform-auth-manager');
@@ -17,6 +18,9 @@ const http = require('http');
 
 // Ollama Service初期化
 const ollamaService = new OllamaService();
+
+// Bluesky Service初期化
+const blueskyService = getBlueskyService();
 
 // Migration Service（Firebase初期化後に設定）
 let migrationService;
@@ -158,6 +162,7 @@ module.exports = {
   firebaseService,
   twitterService,
   twitterOAuthService,
+  blueskyService,
   googleAdsService,
   youtubeDataService,
   multiPlatformAuthManager,

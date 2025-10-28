@@ -1795,11 +1795,11 @@ class FirebaseService {
       const userId = this.currentUser.uid;
 
       // プロジェクトドキュメントを更新
-      const projectRef = this.firebase.doc(this.db, `users/${userId}/projects/${projectId}`);
+      const projectRef = this.firebaseFirestore.doc(this.db, `users/${userId}/projects/${projectId}`);
 
-      await this.firebase.updateDoc(projectRef, {
+      await this.firebaseFirestore.updateDoc(projectRef, {
         twitterAuth: twitterAuth,
-        updatedAt: this.firebase.serverTimestamp()
+        updatedAt: this.firebaseFirestore.serverTimestamp()
       });
 
       console.log('✅ プロジェクトTwitter認証情報保存成功:', projectId);
@@ -1828,8 +1828,8 @@ class FirebaseService {
 
       const userId = this.currentUser.uid;
 
-      const projectRef = this.firebase.doc(this.db, `users/${userId}/projects/${projectId}`);
-      const projectSnap = await this.firebase.getDoc(projectRef);
+      const projectRef = this.firebaseFirestore.doc(this.db, `users/${userId}/projects/${projectId}`);
+      const projectSnap = await this.firebaseFirestore.getDoc(projectRef);
 
       if (!projectSnap.exists()) {
         throw new Error('プロジェクトが見つかりません');
@@ -1841,10 +1841,116 @@ class FirebaseService {
       return {
         success: true,
         twitterAuth: twitterAuth,
-        isConnected: !!twitterAuth && twitterAuth.enabled
+        isConnected: !!twitterAuth && (twitterAuth.enabled || (twitterAuth.apiKey && twitterAuth.accessToken))
       };
     } catch (error) {
       console.error('❌ プロジェクトTwitter認証情報取得エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * プロジェクトのBluesky認証情報を保存
+   * @param {string} projectId - プロジェクトID
+   * @param {object} blueskyAuth - Bluesky認証情報
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  async saveProjectBlueskyAuth(projectId, blueskyAuth) {
+    try {
+      if (!this.isInitialized) {
+        throw new Error('Firebaseが初期化されていません');
+      }
+
+      if (!this.currentUser) {
+        throw new Error('ユーザーがログインしていません');
+      }
+
+      const userId = this.currentUser.uid;
+
+      // プロジェクトドキュメントを更新
+      const projectRef = this.firebaseFirestore.doc(this.db, `users/${userId}/projects/${projectId}`);
+
+      await this.firebaseFirestore.updateDoc(projectRef, {
+        blueskyAuth: blueskyAuth,
+        updatedAt: this.firebaseFirestore.serverTimestamp()
+      });
+
+      console.log('✅ プロジェクトBluesky認証情報保存成功:', projectId);
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ プロジェクトBluesky認証情報保存エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * プロジェクトのBluesky認証情報を取得
+   * @param {string} projectId - プロジェクトID
+   * @returns {Promise<{success: boolean, blueskyAuth?: object, error?: string}>}
+   */
+  async getProjectBlueskyAuth(projectId) {
+    try {
+      if (!this.isInitialized) {
+        throw new Error('Firebaseが初期化されていません');
+      }
+
+      if (!this.currentUser) {
+        throw new Error('ユーザーがログインしていません');
+      }
+
+      const userId = this.currentUser.uid;
+
+      const projectRef = this.firebaseFirestore.doc(this.db, `users/${userId}/projects/${projectId}`);
+      const projectSnap = await this.firebaseFirestore.getDoc(projectRef);
+
+      if (!projectSnap.exists()) {
+        throw new Error('プロジェクトが見つかりません');
+      }
+
+      const projectData = projectSnap.data();
+      const blueskyAuth = projectData.blueskyAuth || null;
+
+      return {
+        success: true,
+        blueskyAuth: blueskyAuth,
+        isConnected: !!blueskyAuth && blueskyAuth.identifier && blueskyAuth.appPassword
+      };
+    } catch (error) {
+      console.error('❌ プロジェクトBluesky認証情報取得エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * プロジェクトのBluesky連携を解除
+   * @param {string} projectId - プロジェクトID
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  async removeProjectBlueskyAuth(projectId) {
+    try {
+      if (!this.isInitialized) {
+        throw new Error('Firebaseが初期化されていません');
+      }
+
+      if (!this.currentUser) {
+        throw new Error('ユーザーがログインしていません');
+      }
+
+      const userId = this.currentUser.uid;
+
+      const projectRef = this.firebaseFirestore.doc(this.db, `users/${userId}/projects/${projectId}`);
+
+      await this.firebaseFirestore.updateDoc(projectRef, {
+        blueskyAuth: this.firebaseFirestore.deleteField(),
+        updatedAt: this.firebaseFirestore.serverTimestamp()
+      });
+
+      console.log('✅ プロジェクトBluesky連携解除成功:', projectId);
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ プロジェクトBluesky連携解除エラー:', error);
       return { success: false, error: error.message };
     }
   }
@@ -1866,11 +1972,11 @@ class FirebaseService {
 
       const userId = this.currentUser.uid;
 
-      const projectRef = this.firebase.doc(this.db, `users/${userId}/projects/${projectId}`);
+      const projectRef = this.firebaseFirestore.doc(this.db, `users/${userId}/projects/${projectId}`);
 
-      await this.firebase.updateDoc(projectRef, {
-        twitterAuth: this.firebase.deleteField(),
-        updatedAt: this.firebase.serverTimestamp()
+      await this.firebaseFirestore.updateDoc(projectRef, {
+        twitterAuth: this.firebaseFirestore.deleteField(),
+        updatedAt: this.firebaseFirestore.serverTimestamp()
       });
 
       console.log('✅ プロジェクトTwitter連携解除成功:', projectId);

@@ -41,6 +41,14 @@ function showProjectsMainScreen() {
   if (projectsSection) {
     projectsSection.style.display = 'block';
 
+    // AI設定UIを更新
+    if (typeof updateAIStatus === 'function') {
+      updateAIStatus();
+    }
+    if (typeof syncAIProviderSelectors === 'function') {
+      syncAIProviderSelectors();
+    }
+
     // プロジェクト一覧を更新
     refreshProjectList();
 
@@ -455,6 +463,9 @@ function displayProjectDetailInfo(project) {
   // Twitter連携状態を表示
   displayTwitterAuthStatus(project.id || currentProjectId);
 
+  // Bluesky連携状態を表示
+  displayBlueskyAuthStatus();
+
   // プランと投稿データを読み込み
   const projectId = project.id || currentProjectId;
   console.log('📊 プロジェクトIDでデータ読み込み開始:', projectId);
@@ -475,6 +486,38 @@ async function updatePlatformStatus() {
     updateTwitterStatus(twitterResult.success);
   } catch (error) {
     console.log('Twitter API状況確認エラー:', error);
+    updateTwitterStatus(false);
+  }
+}
+
+// Twitter連携状態を更新
+function updateTwitterStatus(isConnected) {
+  const badge = document.getElementById('x-connection-badge');
+  if (!badge) return;
+
+  if (isConnected) {
+    badge.textContent = '✓ 連携済み';
+    badge.style.background = '#d4edda';
+    badge.style.color = '#155724';
+  } else {
+    badge.textContent = '未連携';
+    badge.style.background = '#f8d7da';
+    badge.style.color = '#721c24';
+  }
+}
+
+// Twitter認証状態を表示
+async function displayTwitterAuthStatus(projectId) {
+  try {
+    if (!projectId) {
+      updateTwitterStatus(false);
+      return;
+    }
+
+    const result = await window.electronAPI.invoke('twitter-get-project-config', { projectId });
+    updateTwitterStatus(result.isConnected);
+  } catch (error) {
+    console.log('Twitter認証状態確認エラー:', error);
     updateTwitterStatus(false);
   }
 }
@@ -521,6 +564,254 @@ function getCategoryName(category) {
   return categories[category] || 'その他';
 }
 
+// ==================================================
+// Twitter連携設定
+// ==================================================
+
+// Twitter設定モーダルを開く
+async function openTwitterConfigModal() {
+  try {
+    if (!currentProjectId) {
+      alert('プロジェクトを選択してください');
+      return;
+    }
+
+    // 既存の設定を読み込み
+    const result = await window.electronAPI.invoke('twitter-get-project-config', { projectId: currentProjectId });
+
+    if (result.success && result.config) {
+      document.getElementById('twitter-api-key').value = result.config.apiKey || '';
+      document.getElementById('twitter-api-secret').value = result.config.apiSecret || '';
+      document.getElementById('twitter-access-token').value = result.config.accessToken || '';
+      document.getElementById('twitter-access-token-secret').value = result.config.accessTokenSecret || '';
+    } else {
+      // 新規設定の場合は空欄
+      document.getElementById('twitter-api-key').value = '';
+      document.getElementById('twitter-api-secret').value = '';
+      document.getElementById('twitter-access-token').value = '';
+      document.getElementById('twitter-access-token-secret').value = '';
+    }
+
+    document.getElementById('twitter-config-modal').style.display = 'block';
+  } catch (error) {
+    console.error('❌ Twitter設定読み込みエラー:', error);
+    document.getElementById('twitter-config-modal').style.display = 'block';
+  }
+}
+
+// Twitter設定モーダルを閉じる
+function closeTwitterConfigModal() {
+  document.getElementById('twitter-config-modal').style.display = 'none';
+}
+
+// Twitter設定を保存
+async function saveTwitterConfig() {
+  try {
+    if (!currentProjectId) {
+      alert('❌ プロジェクトを選択してください');
+      return;
+    }
+
+    const config = {
+      apiKey: document.getElementById('twitter-api-key').value.trim(),
+      apiSecret: document.getElementById('twitter-api-secret').value.trim(),
+      accessToken: document.getElementById('twitter-access-token').value.trim(),
+      accessTokenSecret: document.getElementById('twitter-access-token-secret').value.trim()
+    };
+
+    // バリデーション
+    if (!config.apiKey || !config.apiSecret || !config.accessToken || !config.accessTokenSecret) {
+      alert('❌ すべてのフィールドを入力してください');
+      return;
+    }
+
+    // 設定を保存
+    const result = await window.electronAPI.invoke('twitter-save-project-config', {
+      projectId: currentProjectId,
+      config
+    });
+
+    if (result.success) {
+      alert('✅ Twitter設定を保存しました');
+      closeTwitterConfigModal();
+
+      // 接続状態を更新
+      await displayTwitterAuthStatus(currentProjectId);
+    } else {
+      alert('❌ 保存エラー: ' + result.error);
+    }
+  } catch (error) {
+    console.error('❌ Twitter設定保存エラー:', error);
+    alert('❌ エラーが発生しました: ' + error.message);
+  }
+}
+
+// Twitter接続テスト
+async function testTwitterConnection() {
+  try {
+    const config = {
+      apiKey: document.getElementById('twitter-api-key').value.trim(),
+      apiSecret: document.getElementById('twitter-api-secret').value.trim(),
+      accessToken: document.getElementById('twitter-access-token').value.trim(),
+      accessTokenSecret: document.getElementById('twitter-access-token-secret').value.trim()
+    };
+
+    // バリデーション
+    if (!config.apiKey || !config.apiSecret || !config.accessToken || !config.accessTokenSecret) {
+      alert('❌ すべてのフィールドを入力してください');
+      return;
+    }
+
+    // 接続テスト
+    const result = await window.electronAPI.invoke('twitter-test-config', config);
+
+    if (result.success) {
+      alert('✅ 接続成功！Twitter APIに正常に接続できました。');
+    } else {
+      alert('❌ 接続失敗: ' + result.error);
+    }
+  } catch (error) {
+    console.error('❌ Twitter接続テストエラー:', error);
+    alert('❌ エラーが発生しました: ' + error.message);
+  }
+}
+
+// ==================================================
+// Bluesky連携設定
+// ==================================================
+
+// Bluesky接続状態バッジを更新
+function updateBlueskyConnectionBadge(isConnected) {
+  const badge = document.getElementById('bluesky-connection-badge');
+  if (!badge) return;
+
+  if (isConnected) {
+    badge.textContent = '✓ 連携済み';
+    badge.style.background = '#d4edda';
+    badge.style.color = '#155724';
+  } else {
+    badge.textContent = '未連携';
+    badge.style.background = '#f8d7da';
+    badge.style.color = '#721c24';
+  }
+}
+
+// Bluesky接続状態を確認して表示
+async function displayBlueskyAuthStatus() {
+  try {
+    if (!currentProjectId) {
+      updateBlueskyConnectionBadge(false);
+      return;
+    }
+
+    const result = await window.electronAPI.invoke('bluesky-get-project-config', { projectId: currentProjectId });
+    updateBlueskyConnectionBadge(result.isConnected);
+  } catch (error) {
+    console.log('Bluesky認証状態確認エラー:', error);
+    updateBlueskyConnectionBadge(false);
+  }
+}
+
+// Bluesky設定モーダルを開く
+async function openBlueskyConfigModal() {
+  try {
+    if (!currentProjectId) {
+      alert('プロジェクトを選択してください');
+      return;
+    }
+
+    // 既存の設定を読み込み
+    const result = await window.electronAPI.invoke('bluesky-get-project-config', { projectId: currentProjectId });
+
+    if (result.success && result.config) {
+      document.getElementById('bluesky-identifier').value = result.config.identifier || '';
+      document.getElementById('bluesky-app-password').value = result.config.appPassword || '';
+    } else {
+      // 新規設定の場合は空欄
+      document.getElementById('bluesky-identifier').value = '';
+      document.getElementById('bluesky-app-password').value = '';
+    }
+
+    document.getElementById('bluesky-config-modal').style.display = 'block';
+  } catch (error) {
+    console.error('❌ Bluesky設定読み込みエラー:', error);
+    document.getElementById('bluesky-config-modal').style.display = 'block';
+  }
+}
+
+// Bluesky設定モーダルを閉じる
+function closeBlueskyConfigModal() {
+  document.getElementById('bluesky-config-modal').style.display = 'none';
+}
+
+// Bluesky設定を保存
+async function saveBlueskyConfig() {
+  try {
+    if (!currentProjectId) {
+      alert('❌ プロジェクトを選択してください');
+      return;
+    }
+
+    const config = {
+      identifier: document.getElementById('bluesky-identifier').value.trim(),
+      appPassword: document.getElementById('bluesky-app-password').value.trim()
+    };
+
+    // バリデーション
+    if (!config.identifier || !config.appPassword) {
+      alert('❌ すべてのフィールドを入力してください');
+      return;
+    }
+
+    // 設定を保存
+    const result = await window.electronAPI.invoke('bluesky-save-project-config', {
+      projectId: currentProjectId,
+      config
+    });
+
+    if (result.success) {
+      alert('✅ Bluesky設定を保存しました');
+      closeBlueskyConfigModal();
+
+      // 接続状態を更新
+      updateBlueskyConnectionBadge(true);
+    } else {
+      alert('❌ 保存エラー: ' + result.error);
+    }
+  } catch (error) {
+    console.error('❌ Bluesky設定保存エラー:', error);
+    alert('❌ エラーが発生しました: ' + error.message);
+  }
+}
+
+// Bluesky接続テスト
+async function testBlueskyConnection() {
+  try {
+    const config = {
+      identifier: document.getElementById('bluesky-identifier').value.trim(),
+      appPassword: document.getElementById('bluesky-app-password').value.trim()
+    };
+
+    // バリデーション
+    if (!config.identifier || !config.appPassword) {
+      alert('❌ すべてのフィールドを入力してください');
+      return;
+    }
+
+    // 接続テスト
+    const result = await window.electronAPI.invoke('bluesky-test-config', config);
+
+    if (result.success) {
+      alert(`✅ 接続成功！Blueskyに正常に接続できました。\n\nHandle: ${result.handle}\nDID: ${result.did}`);
+    } else {
+      alert('❌ 接続失敗: ' + result.error);
+    }
+  } catch (error) {
+    console.error('❌ Bluesky接続テストエラー:', error);
+    alert('❌ エラーが発生しました: ' + error.message);
+  }
+}
+
 // ========================================
 // ES Modules: HTML onclick用にwindowに公開
 // ========================================
@@ -544,6 +835,18 @@ if (typeof window !== 'undefined') {
   window.saveProjectChanges = saveProjectChanges;
   window.deleteProjectFromDetail = deleteProjectFromDetail;
   window.deleteProject = deleteProject;
+
+  // Twitter連携設定関数
+  window.openTwitterConfigModal = openTwitterConfigModal;
+  window.closeTwitterConfigModal = closeTwitterConfigModal;
+  window.saveTwitterConfig = saveTwitterConfig;
+  window.testTwitterConnection = testTwitterConnection;
+
+  // Bluesky連携設定関数
+  window.openBlueskyConfigModal = openBlueskyConfigModal;
+  window.closeBlueskyConfigModal = closeBlueskyConfigModal;
+  window.saveBlueskyConfig = saveBlueskyConfig;
+  window.testBlueskyConnection = testBlueskyConnection;
 
   console.log('✅ projects.js (ES Module) loaded and functions exposed to window');
 }

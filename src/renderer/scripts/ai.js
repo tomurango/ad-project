@@ -330,13 +330,7 @@ ${userMessage}
         let errorMessage = '申し訳ありません。応答生成中にエラーが発生しました。';
         const currentProvider = aiServiceManager.getCurrentProvider();
 
-        if (currentProvider === 'ollama') {
-          if (error.message && error.message.includes('ECONNREFUSED')) {
-            errorMessage = `Ollamaサーバーに接続できません。\n\n以下をご確認ください：\n• Ollamaが起動しているか\n• http://localhost:11434 にアクセス可能か\n\nヘッダーから他のAIプロバイダーを選択することもできます。`;
-          } else {
-            errorMessage = `Ollama応答エラー: ${error.message}\n\n他のAIプロバイダーを試すか、Ollamaの設定をご確認ください。`;
-          }
-        } else if (error.message && error.message.includes('API')) {
+        if (error.message && error.message.includes('API')) {
           errorMessage = `${currentProvider}との通信でエラーが発生しました: ${error.message}\n\nAPIキーの設定をご確認いただくか、他のプロバイダーをお試しください。`;
         }
 
@@ -784,22 +778,46 @@ function generateProviderConfigForm(provider) {
       const config = aiServiceManager.config[provider];
       
       switch (provider) {
-        case 'ollama':
+        case 'gemini':
           return `
             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-              <h4 style="margin-top: 0; color: var(--primary);">Ollama設定</h4>
+              <h4 style="margin-top: 0; color: var(--primary);">Gemini設定 💰</h4>
+              <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                <strong>⚠️ 有料サービス</strong><br>
+                • <strong>APIキー取得:</strong><br>
+                  <code style="background: #f1f3f4; padding: 2px 6px; border-radius: 3px; font-size: 12px; user-select: all; cursor: text;" title="クリックして選択、Ctrl+Cでコピー">https://aistudio.google.com/app/apikey</code><br>
+                  <small style="color: #666;">💡 URLをコピーしてブラウザで開いてください</small><br>
+                • 無料枠あり（月60リクエスト/分）<br>
+                • 超過分は使用量に応じて課金
+              </div>
+              <div style="margin-bottom: 15px; padding: 12px; background: white; border: 2px solid ${config.enabled ? 'var(--success)' : '#6c757d'}; border-radius: 8px;">
+                <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                  <input type="checkbox" id="gemini-enabled" ${config.enabled ? 'checked' : ''} style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                  <span style="font-weight: bold; font-size: 16px;">このプロバイダーを有効にする</span>
+                </label>
+                <div style="margin-top: 8px; font-size: 13px; color: #666;">
+                  ${config.enabled ? '✅ 有効 - このAIを使用できます' : '⚠️ 無効 - 一時的に使用を停止しています'}
+                </div>
+              </div>
               <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px;">ベースURL</label>
-                <input type="text" id="ollama-baseurl" value="${config.baseUrl}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <label style="display: block; margin-bottom: 5px;">APIキー</label>
+                <input type="password" id="gemini-apikey" value="${config.apiKey || ''}" placeholder="AIza..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
               </div>
               <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px;">モデル</label>
-                <input type="text" id="ollama-model" value="${config.model}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <select id="gemini-model" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                  <option value="gemini-2.0-flash" ${config.model === 'gemini-2.0-flash' ? 'selected' : ''}>Gemini 2.0 Flash (安定版・推奨)</option>
+                  <option value="gemini-2.5-flash-preview-09-2025" ${config.model === 'gemini-2.5-flash-preview-09-2025' ? 'selected' : ''}>Gemini 2.5 Flash Preview (最新プレビュー)</option>
+                  <option value="gemini-1.5-flash-latest" ${config.model === 'gemini-1.5-flash-latest' ? 'selected' : ''}>Gemini 1.5 Flash Latest (非推奨)</option>
+                  <option value="gemini-pro" ${config.model === 'gemini-pro' ? 'selected' : ''}>Gemini Pro (非推奨)</option>
+                </select>
               </div>
-              <div style="color: var(--success); font-size: 14px;">✅ Ollamaはローカル環境で動作します</div>
+              <div style="color: var(--success); font-size: 14px; margin-top: 10px;">
+                ✅ 設定後すぐに利用可能です
+              </div>
             </div>
           `;
-          
+
         case 'openai':
           return `
             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
@@ -852,46 +870,6 @@ function generateProviderConfigForm(provider) {
                   <option value="claude-3-haiku-20240307" ${config.model === 'claude-3-haiku-20240307' ? 'selected' : ''}>Claude 3 Haiku ($0.25/1M tokens)</option>
                   <option value="claude-3-sonnet-20240229" ${config.model === 'claude-3-sonnet-20240229' ? 'selected' : ''}>Claude 3 Sonnet ($3/1M tokens)</option>
                   <option value="claude-3-opus-20240229" ${config.model === 'claude-3-opus-20240229' ? 'selected' : ''}>Claude 3 Opus ($15/1M tokens)</option>
-                </select>
-              </div>
-              <div style="color: var(--success); font-size: 14px; margin-top: 10px;">
-                ✅ 設定後すぐに利用可能です
-              </div>
-            </div>
-          `;
-          
-        case 'gemini':
-          return `
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-              <h4 style="margin-top: 0; color: var(--primary);">Gemini設定 💰</h4>
-              <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
-                <strong>⚠️ 有料サービス</strong><br>
-                • <strong>APIキー取得:</strong><br>
-                  <code style="background: #f1f3f4; padding: 2px 6px; border-radius: 3px; font-size: 12px; user-select: all; cursor: text;" title="クリックして選択、Ctrl+Cでコピー">https://aistudio.google.com/app/apikey</code><br>
-                  <small style="color: #666;">💡 URLをコピーしてブラウザで開いてください</small><br>
-                • 無料枠あり（月60リクエスト/分）<br>
-                • 超過分は使用量に応じて課金
-              </div>
-              <div style="margin-bottom: 15px; padding: 12px; background: white; border: 2px solid ${config.enabled ? 'var(--success)' : '#6c757d'}; border-radius: 8px;">
-                <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
-                  <input type="checkbox" id="gemini-enabled" ${config.enabled ? 'checked' : ''} style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
-                  <span style="font-weight: bold; font-size: 16px;">このプロバイダーを有効にする</span>
-                </label>
-                <div style="margin-top: 8px; font-size: 13px; color: #666;">
-                  ${config.enabled ? '✅ 有効 - このAIを使用できます' : '⚠️ 無効 - 一時的に使用を停止しています'}
-                </div>
-              </div>
-              <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px;">APIキー</label>
-                <input type="password" id="gemini-apikey" value="${config.apiKey || ''}" placeholder="AIza..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-              </div>
-              <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px;">モデル</label>
-                <select id="gemini-model" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                  <option value="gemini-2.0-flash" ${config.model === 'gemini-2.0-flash' ? 'selected' : ''}>Gemini 2.0 Flash (安定版・推奨)</option>
-                  <option value="gemini-2.5-flash-preview-09-2025" ${config.model === 'gemini-2.5-flash-preview-09-2025' ? 'selected' : ''}>Gemini 2.5 Flash Preview (最新プレビュー)</option>
-                  <option value="gemini-1.5-flash-latest" ${config.model === 'gemini-1.5-flash-latest' ? 'selected' : ''}>Gemini 1.5 Flash Latest (非推奨)</option>
-                  <option value="gemini-pro" ${config.model === 'gemini-pro' ? 'selected' : ''}>Gemini Pro (非推奨)</option>
                 </select>
               </div>
               <div style="color: var(--success); font-size: 14px; margin-top: 10px;">
@@ -1019,33 +997,30 @@ async function handleAIProviderChange(event) {
       const newProvider = event.target.value;
       
       try {
-        // 有料プロバイダーの場合は警告表示
-        if (newProvider !== 'ollama') {
-          // 設定済みかチェック
-          if (!aiServiceManager.isProviderConfigured(newProvider)) {
-            const confirmMessage = `${aiServiceManager.getProviderDisplayName(newProvider)}は有料のAIサービスです。\n\n` +
-              `利用には以下が必要です:\n` +
-              `• 各サービスへのアカウント登録\n` +
-              `• APIキーの取得\n` +
-              `• 従量課金での支払い\n\n` +
-              `設定画面を開きますか？`;
-              
-            if (!confirm(confirmMessage)) {
-              // キャンセルされた場合は元に戻す
-              event.target.value = aiServiceManager.getCurrentProvider();
-              return;
-            }
-            
-            // 設定画面を開く
-            try {
-              openAIConfig(newProvider);
-            } catch (error) {
-              console.error('❌ 設定画面を開けませんでした:', error);
-            }
-            // 選択を元に戻す（設定完了後に変更される）
+        // 設定済みかチェック（全プロバイダー有料）
+        if (!aiServiceManager.isProviderConfigured(newProvider)) {
+          const confirmMessage = `${aiServiceManager.getProviderDisplayName(newProvider)}は有料のAIサービスです。\n\n` +
+            `利用には以下が必要です:\n` +
+            `• 各サービスへのアカウント登録\n` +
+            `• APIキーの取得\n` +
+            `• 従量課金での支払い\n\n` +
+            `設定画面を開きますか？`;
+
+          if (!confirm(confirmMessage)) {
+            // キャンセルされた場合は元に戻す
             event.target.value = aiServiceManager.getCurrentProvider();
             return;
           }
+
+          // 設定画面を開く
+          try {
+            openAIConfig(newProvider);
+          } catch (error) {
+            console.error('❌ 設定画面を開けませんでした:', error);
+          }
+          // 選択を元に戻す（設定完了後に変更される）
+          event.target.value = aiServiceManager.getCurrentProvider();
+          return;
         }
         
         // プロバイダーを変更
@@ -1129,25 +1104,25 @@ async function initializeAIManagerFallback() {
         constructor() {
           this.currentProvider = 'gemini'; // Cloud Functions対応のためデフォルトをGeminiに変更
           this.config = {
-            ollama: { baseUrl: 'http://localhost:11434', model: 'qwen2.5:0.5b', enabled: true, cloudAvailable: false },
+            gemini: { apiKey: '', model: 'gemini-2.0-flash', enabled: false, cloudAvailable: true },
             openai: { apiKey: '', model: 'gpt-3.5-turbo', enabled: false, cloudAvailable: true },
-            claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true },
-            gemini: { apiKey: '', model: 'gemini-pro', enabled: false, cloudAvailable: true }
+            claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true }
           };
           this.firebaseService = null;
           this.isFirestoreEnabled = false;
           this.userId = null;
           this.initializeFirestore();
         }
-        
+
         getCurrentProvider() { return this.currentProvider; }
         getProviderDisplayName(provider) {
-          const names = { ollama: 'Ollama', openai: 'OpenAI', claude: 'Claude', gemini: 'Gemini' };
+          const names = { gemini: 'Gemini', openai: 'OpenAI', claude: 'Claude' };
           return names[provider] || provider;
         }
         isProviderConfigured(provider) {
           const config = this.config[provider];
-          return provider === 'ollama' ? true : (config.apiKey && config.apiKey.length > 0);
+          if (!config) return false;
+          return config.apiKey && config.apiKey.length > 0;
         }
         setProvider(provider) { if (this.config[provider]) this.currentProvider = provider; }
         updateConfig(provider, config) { if (this.config[provider]) this.config[provider] = { ...this.config[provider], ...config }; }
@@ -1220,7 +1195,15 @@ async function initializeAIManagerFallback() {
             const result = await this.firebaseService.loadUserAIConfig(this.userId);
             if (result.success && result.config) {
               this.currentProvider = result.config.defaultProvider || 'gemini';
-              this.config = { ...this.config, ...result.config.providers };
+
+              // Ollamaを除外（サポート終了）
+              const loadedConfig = result.config.providers;
+              if (loadedConfig && loadedConfig.ollama) {
+                delete loadedConfig.ollama;
+                console.log('🔄 Ollama設定を削除しました（サポート終了）');
+              }
+
+              this.config = { ...this.config, ...loadedConfig };
             } else {
               console.log('ℹ️ Firestore設定なし - デフォルト設定を使用');
             }
@@ -1263,6 +1246,13 @@ async function initializeAIManagerFallback() {
             if (saved) {
               const data = JSON.parse(saved);
               this.currentProvider = data.currentProvider || 'gemini';
+
+              // Ollamaを除外（サポート終了）
+              if (data.config && data.config.ollama) {
+                delete data.config.ollama;
+                console.log('🔄 Ollama設定を削除しました（サポート終了）');
+              }
+
               this.config = { ...this.config, ...data.config };
               console.log('💾 AI設定をLocalStorageから読み込みました');
             }
@@ -1312,10 +1302,9 @@ async function initializeAIManagerFallback() {
           // デフォルト設定にリセット
           this.currentProvider = 'gemini';
           this.config = {
-            ollama: { baseUrl: 'http://localhost:11434', model: 'qwen2.5:0.5b', enabled: true, cloudAvailable: false },
+            gemini: { apiKey: '', model: 'gemini-2.0-flash', enabled: false, cloudAvailable: true },
             openai: { apiKey: '', model: 'gpt-3.5-turbo', enabled: false, cloudAvailable: true },
-            claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true },
-            gemini: { apiKey: '', model: 'gemini-pro', enabled: false, cloudAvailable: true }
+            claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true }
           };
         }
         getAvailableProviders() {
@@ -1385,10 +1374,9 @@ async function initializeAIManagerFallback() {
           // デフォルト設定にリセット
           this.currentProvider = 'gemini';
           this.config = {
-            ollama: { baseUrl: 'http://localhost:11434', model: 'qwen2.5:0.5b', enabled: true, cloudAvailable: false },
+            gemini: { apiKey: '', model: 'gemini-2.0-flash', enabled: false, cloudAvailable: true },
             openai: { apiKey: '', model: 'gpt-3.5-turbo', enabled: false, cloudAvailable: true },
-            claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true },
-            gemini: { apiKey: '', model: 'gemini-pro', enabled: false, cloudAvailable: true }
+            claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true }
           };
         }
 
@@ -1551,27 +1539,22 @@ function saveAIConfig() {
       
       const provider = document.getElementById('config-provider-select').value;
       const config = {};
-      
+
       switch (provider) {
-        case 'ollama':
-          config.baseUrl = document.getElementById('ollama-baseurl').value;
-          config.model = document.getElementById('ollama-model').value;
-          break;
-          
-        case 'openai':
-          config.apiKey = document.getElementById('openai-apikey').value;
-          config.model = document.getElementById('openai-model').value;
-          break;
-          
-        case 'claude':
-          config.apiKey = document.getElementById('claude-apikey').value;
-          config.model = document.getElementById('claude-model').value;
-          break;
-          
         case 'gemini':
           config.apiKey = document.getElementById('gemini-apikey').value;
           config.model = document.getElementById('gemini-model').value;
           config.enabled = document.getElementById('gemini-enabled').checked;
+          break;
+
+        case 'openai':
+          config.apiKey = document.getElementById('openai-apikey').value;
+          config.model = document.getElementById('openai-model').value;
+          break;
+
+        case 'claude':
+          config.apiKey = document.getElementById('claude-apikey').value;
+          config.model = document.getElementById('claude-model').value;
           break;
       }
       
@@ -1712,18 +1695,7 @@ async function testAIConnection() {
             statusElement.style.color = '#EF4444';
           }
 
-          // Ollama固有のエラーメッセージ
-          if (currentProvider === 'ollama') {
-            const errorMsg = `Ollamaサーバーに接続できません。\n\n` +
-              `以下をご確認ください：\n` +
-              `• Ollamaが起動しているか\n` +
-              `• http://localhost:11434 にアクセス可能か\n\n` +
-              `または、他のAIプロバイダー（Gemini、OpenAI、Claude）を\n` +
-              `ヘッダーから選択してください。`;
-            showNotification(errorMsg, 'error');
-          } else {
-            showNotification(`${displayName}への接続に失敗しました: ${result.error}`, 'error');
-          }
+          showNotification(`${displayName}への接続に失敗しました: ${result.error}`, 'error');
         }
       } catch (error) {
         console.error('❌ AI接続テストエラー:', error);

@@ -119,4 +119,52 @@ ipcMain.handle('remove-project-twitter-auth', async (event, { projectId }) => {
   }
 });
 
+// プロジェクトのTwitter設定を取得
+ipcMain.handle('twitter-get-project-config', async (event, { projectId }) => {
+  try {
+    // まずプロジェクトのTwitter Basic Auth設定を取得
+    const authResult = await firebaseService.getProjectTwitterAuth(projectId);
+
+    return {
+      success: authResult.success,
+      config: authResult.twitterAuth,
+      isConnected: authResult.isConnected,
+      error: authResult.error
+    };
+  } catch (error) {
+    console.error('❌ Twitter設定取得エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// プロジェクトのTwitter設定を保存
+ipcMain.handle('twitter-save-project-config', async (event, { projectId, config }) => {
+  try {
+    const result = await firebaseService.saveProjectTwitterAuth(projectId, config);
+    console.log('✅ Twitter設定を保存しました');
+    return result;
+  } catch (error) {
+    console.error('❌ Twitter設定保存エラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Twitter設定で接続テスト
+ipcMain.handle('twitter-test-config', async (event, config) => {
+  try {
+    // 一時的にtwitterServiceに設定を適用してテスト
+    const result = await twitterService.testConnection({
+      consumer_key: config.apiKey,
+      consumer_secret: config.apiSecret,
+      access_token_key: config.accessToken,
+      access_token_secret: config.accessTokenSecret
+    });
+
+    return result;
+  } catch (error) {
+    console.error('❌ Twitter接続テストエラー:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 module.exports = { initializeServices };

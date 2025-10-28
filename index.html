@@ -452,10 +452,9 @@
           <div>
             <label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-secondary); font-size: 14px;">AIプロバイダー選択</label>
             <select id="ai-provider-select-main" style="width: 100%; padding: 10px 12px; border: 1px solid #e1e8ed; border-radius: 8px; font-size: 14px; background: white; cursor: pointer;">
-              <option value="ollama">🟢 Ollama (無料・ローカル)</option>
+              <option value="gemini" title="APIキーが必要です">💰 Gemini (有料)</option>
               <option value="openai" title="APIキーが必要です">💰 OpenAI (有料)</option>
               <option value="claude" title="APIキーが必要です">💰 Claude (有料)</option>
-              <option value="gemini" title="APIキーが必要です">💰 Gemini (有料)</option>
             </select>
             <button onclick="openAIConfig()" style="width: 100%; margin-top: 10px; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
               ⚙️ AI詳細設定
@@ -468,7 +467,7 @@
             <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 10px;">
               <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
                 <span style="color: var(--text-secondary);">現在のAI:</span>
-                <span id="current-ai-provider" style="font-weight: 600; color: var(--primary);">Ollama</span>
+                <span id="current-ai-provider" style="font-weight: 600; color: var(--primary);">Gemini</span>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
                 <span style="color: var(--text-secondary);">接続状態:</span>
@@ -760,7 +759,10 @@
                   <span style="font-size: 20px;">𝕏</span>
                   <span style="font-size: 14px; font-weight: 500;">X (Twitter)</span>
                 </div>
-                <span id="x-connection-badge" style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: #f3f4f6; color: #6b7280;">未確認</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span id="x-connection-badge" style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: #f3f4f6; color: #6b7280;">未確認</span>
+                  <button onclick="openTwitterConfigModal()" class="btn btn-primary" style="font-size: 12px; padding: 4px 12px;">⚙️ 設定</button>
+                </div>
               </div>
 
               <!-- Instagram -->
@@ -781,13 +783,16 @@
                 <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: #fef3c7; color: #92400e;">準備中</span>
               </div>
 
-              <!-- LinkedIn -->
-              <div style="padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; background: #f9fafb; opacity: 0.6;">
+              <!-- Bluesky -->
+              <div id="sns-bluesky-status" style="padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; background: #f9fafb;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 20px;">💼</span>
-                  <span style="font-size: 14px; font-weight: 500;">LinkedIn</span>
+                  <span style="font-size: 20px;">🦋</span>
+                  <span style="font-size: 14px; font-weight: 500;">Bluesky</span>
                 </div>
-                <span style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: #fef3c7; color: #92400e;">準備中</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span id="bluesky-connection-badge" style="font-size: 12px; padding: 4px 8px; border-radius: 4px; background: #f3f4f6; color: #6b7280;">未確認</span>
+                  <button onclick="openBlueskyConfigModal()" class="btn btn-primary" style="font-size: 12px; padding: 4px 12px;">⚙️ 設定</button>
+                </div>
               </div>
             </div>
           </div>
@@ -834,6 +839,13 @@
               <div>予約投稿がまだありません</div>
               <div style="font-size: 14px; margin-top: 5px;">プランを作成するか手動投稿で投稿を予約してください</div>
             </div>
+          </div>
+
+          <!-- もっと見るボタン -->
+          <div style="text-align: center; margin-top: 20px;">
+            <button id="load-more-posts" onclick="loadMorePosts()" class="btn btn-secondary" style="display: none;">
+              📋 もっと見る
+            </button>
           </div>
         </div>
 
@@ -1159,10 +1171,9 @@
           <div style="font-size: 12px; color: #657786; margin-top: 5px;">準備中</div>
         </div>
 
-        <div class="platform-card" onclick="selectPlatformForPlan('linkedin')" style="padding: 30px; border: 2px solid #e1e8ed; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.2s; opacity: 0.5;">
-          <div style="font-size: 48px; margin-bottom: 10px;">💼</div>
-          <div style="font-weight: 600; color: #333;">LinkedIn</div>
-          <div style="font-size: 12px; color: #657786; margin-top: 5px;">準備中</div>
+        <div class="platform-card" onclick="selectPlatformForPlan('bluesky')" style="padding: 30px; border: 2px solid #e1e8ed; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.2s;">
+          <div style="font-size: 48px; margin-bottom: 10px;">🦋</div>
+          <div style="font-weight: 600; color: #333;">Bluesky</div>
         </div>
       </div>
 
@@ -1372,6 +1383,82 @@
 
         <div style="display: flex; justify-content: flex-end;">
           <button type="button" onclick="closePlatformSelectionModal()" class="btn btn-secondary">キャンセル</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- X (Twitter) 連携設定モーダル -->
+  <div id="twitter-config-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(4px);" onclick="closeTwitterConfigModal()">
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <div style="padding: 40px;">
+        <h2 style="margin: 0 0 10px 0; color: var(--primary);">⚙️ X (Twitter) API設定</h2>
+        <p style="color: #657786; margin-bottom: 30px;">Twitter Developer Portalで取得したAPI認証情報を入力してください</p>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">API Key</label>
+          <input type="text" id="twitter-api-key" placeholder="API Keyを入力..." style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">API Secret Key</label>
+          <input type="password" id="twitter-api-secret" placeholder="API Secret Keyを入力..." style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">Access Token</label>
+          <input type="text" id="twitter-access-token" placeholder="Access Tokenを入力..." style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">Access Token Secret</label>
+          <input type="password" id="twitter-access-token-secret" placeholder="Access Token Secretを入力..." style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px;">
+        </div>
+
+        <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+          <p style="margin: 0; font-size: 13px; color: #0c4a6e; line-height: 1.5;">
+            💡 <strong>ヒント:</strong> Twitter Developer Portal (developer.twitter.com) でアプリを作成し、
+            Keys and tokens セクションから認証情報を取得してください。
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+          <button type="button" onclick="closeTwitterConfigModal()" class="btn btn-secondary">キャンセル</button>
+          <button type="button" onclick="testTwitterConnection()" class="btn btn-secondary">🔍 接続テスト</button>
+          <button type="button" onclick="saveTwitterConfig()" class="btn btn-primary">✅ 保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bluesky 連携設定モーダル -->
+  <div id="bluesky-config-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; backdrop-filter: blur(4px);" onclick="closeBlueskyConfigModal()">
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
+      <div style="padding: 40px;">
+        <h2 style="margin: 0 0 10px 0; color: #0085ff;">⚙️ Bluesky 認証設定</h2>
+        <p style="color: #657786; margin-bottom: 30px;">Blueskyアカウントの認証情報を入力してください</p>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">Handle / Email</label>
+          <input type="text" id="bluesky-identifier" placeholder="例: username.bsky.social または yourmail@example.com" style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">App Password</label>
+          <input type="password" id="bluesky-app-password" placeholder="アプリパスワードを入力..." style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 14px;">
+        </div>
+
+        <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+          <p style="margin: 0; font-size: 13px; color: #0c4a6e; line-height: 1.5;">
+            💡 <strong>重要:</strong> 通常のパスワードではなく、<strong>アプリパスワード</strong>を使用してください。<br>
+            Blueskyアプリの Settings → App Passwords から新しいアプリパスワードを作成できます。
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 30px;">
+          <button type="button" onclick="closeBlueskyConfigModal()" class="btn btn-secondary">キャンセル</button>
+          <button type="button" onclick="testBlueskyConnection()" class="btn btn-secondary">🔍 接続テスト</button>
+          <button type="button" onclick="saveBlueskyConfig()" class="btn btn-primary">✅ 保存</button>
         </div>
       </div>
     </div>

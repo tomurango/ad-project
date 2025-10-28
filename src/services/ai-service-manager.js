@@ -68,11 +68,11 @@ class AIServiceManager {
     }
 
     this.config = {
-      ollama: {
-        baseUrl: 'http://localhost:11434',
-        model: 'qwen2.5:0.5b',
-        enabled: true,
-        cloudAvailable: false
+      gemini: {
+        apiKey: '',
+        model: 'gemini-2.0-flash',
+        enabled: false,
+        cloudAvailable: true
       },
       openai: {
         apiKey: '',
@@ -83,12 +83,6 @@ class AIServiceManager {
       claude: {
         apiKey: '',
         model: 'claude-3-haiku-20240307',
-        enabled: false,
-        cloudAvailable: true
-      },
-      gemini: {
-        apiKey: '',
-        model: 'gemini-2.0-flash',
         enabled: false,
         cloudAvailable: true
       }
@@ -143,10 +137,9 @@ class AIServiceManager {
    */
   getProviderDisplayName(provider) {
     const names = {
-      ollama: 'Ollama',
+      gemini: 'Gemini',
       openai: 'OpenAI',
-      claude: 'Claude',
-      gemini: 'Gemini'
+      claude: 'Claude'
     };
     return names[provider] || provider;
   }
@@ -156,16 +149,8 @@ class AIServiceManager {
    */
   isProviderConfigured(provider) {
     const config = this.config[provider];
-    switch (provider) {
-      case 'ollama':
-        return true; // ローカル環境なので常に利用可能
-      case 'openai':
-      case 'claude':
-      case 'gemini':
-        return config.apiKey && config.apiKey.length > 0;
-      default:
-        return false;
-    }
+    if (!config) return false;
+    return config.apiKey && config.apiKey.length > 0;
   }
 
   /**
@@ -173,18 +158,20 @@ class AIServiceManager {
    */
   async generateText(prompt, options = {}) {
     const provider = options.provider || this.currentProvider;
-    
+
     switch (provider) {
-      case 'ollama':
-        return this.generateWithOllama(prompt, options);
+      case 'gemini':
+        return this.generateWithGemini(prompt, options);
       case 'openai':
         return this.generateWithOpenAI(prompt, options);
       case 'claude':
         return this.generateWithClaude(prompt, options);
-      case 'gemini':
-        return this.generateWithGemini(prompt, options);
       default:
-        throw new Error(`Unsupported provider: ${provider}`);
+        return {
+          success: false,
+          error: `未対応のAIプロバイダーです: ${provider}`,
+          provider: provider
+        };
     }
   }
 
@@ -458,10 +445,9 @@ class AIServiceManager {
     // デフォルト設定にリセット
     this.currentProvider = 'gemini';
     this.config = {
-      ollama: { baseUrl: 'http://localhost:11434', model: 'qwen2.5:0.5b', enabled: true, cloudAvailable: false },
+      gemini: { apiKey: '', model: 'gemini-2.0-flash', enabled: false, cloudAvailable: true },
       openai: { apiKey: '', model: 'gpt-3.5-turbo', enabled: false, cloudAvailable: true },
-      claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true },
-      gemini: { apiKey: '', model: 'gemini-2.5-flash', enabled: false, cloudAvailable: true }
+      claude: { apiKey: '', model: 'claude-3-haiku-20240307', enabled: false, cloudAvailable: true }
     };
   }
 
@@ -486,11 +472,11 @@ class AIServiceManager {
     const defaultConfig = {
       defaultProvider: 'gemini',
       providers: {
-        ollama: {
-          baseUrl: 'http://localhost:11434',
-          model: 'qwen2.5:0.5b',
-          enabled: true,
-          cloudAvailable: false
+        gemini: {
+          apiKey: '',
+          model: 'gemini-2.0-flash',
+          enabled: false, // APIキー未設定なのでfalse
+          cloudAvailable: true
         },
         openai: {
           apiKey: '',
@@ -502,12 +488,6 @@ class AIServiceManager {
           apiKey: '',
           model: 'claude-3-haiku-20240307',
           enabled: false,
-          cloudAvailable: true
-        },
-        gemini: {
-          apiKey: '',
-          model: 'gemini-2.0-flash',
-          enabled: false, // APIキー未設定なのでfalse
           cloudAvailable: true
         }
       },
@@ -564,6 +544,12 @@ class AIServiceManager {
 
         // 設定をマージ
         const loadedConfig = result.config.providers;
+
+        // Ollamaを除外（サポート終了）
+        if (loadedConfig.ollama) {
+          delete loadedConfig.ollama;
+          console.log('🔄 Ollama設定を削除しました（サポート終了）');
+        }
 
         // 古いGeminiモデル名を自動アップグレード
         let needsUpdate = false;
