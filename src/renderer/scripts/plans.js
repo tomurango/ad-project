@@ -302,8 +302,9 @@ function collectPlanFormData() {
     name: document.getElementById('plan-name').value.trim(),
     description: document.getElementById('plan-description').value.trim(),
     platform: platform,
+    frequency: frequency,  // ← Cloud Functions対応: トップレベルに追加
     schedule: {
-      frequency: frequency,
+      frequency: frequency,  // ← 互換性のため schedule 内にも保持
       time: document.getElementById('plan-time').value,
       enabled: true
     },

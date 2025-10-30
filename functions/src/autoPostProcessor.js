@@ -246,17 +246,28 @@ async function processProjectAutoPosts(userId, projectId, projectData) {
       try {
         const planId = planDoc.id;
         const planData = planDoc.data();
-        
+
+        console.log(`🔍 プラン検査開始: ${planData.name} (ID: ${planId})`);
+        console.log(`  - frequency: ${planData.frequency}`);
+        console.log(`  - schedule.frequency: ${planData.schedule?.frequency}`);
+        console.log(`  - isActive: ${planData.isActive}`);
+        console.log(`  - platform: ${planData.platform}`);
+
         // スケジュールチェック
-        if (shouldGeneratePost(planData, currentTime)) {
+        const shouldGenerate = shouldGeneratePost(planData, currentTime);
+        console.log(`  → 投稿生成判定: ${shouldGenerate}`);
+
+        if (shouldGenerate) {
           const result = await generateAutoPost(userId, projectId, projectData, planId, planData);
-          
+
           if (result.success) {
             generatedPosts++;
-            console.log(`✅ 自動投稿生成: ${planData.name} (${planData.platform})`);
+            console.log(`✅ 自動投稿生成成功: ${planData.name} (${planData.platform})`);
+          } else {
+            console.log(`❌ 自動投稿生成失敗: ${planData.name} - ${result.error}`);
           }
         }
-        
+
       } catch (planError) {
         console.error(`❌ プラン処理エラー (${planDoc.id}):`, planError);
         // エラーが発生したプランはスキップして続行
@@ -275,23 +286,34 @@ async function processProjectAutoPosts(userId, projectId, projectData) {
  * プランが投稿生成対象かどうかをチェック
  */
 function shouldGeneratePost(planData, currentTime, isManualExecution = false) {
+  console.log(`📅 shouldGeneratePost チェック開始`);
+
   if (!planData.schedule) {
+    console.log(`  ❌ schedule が存在しません`);
     return false;
   }
-  
+
   const schedule = planData.schedule;
   const frequency = planData.frequency;
   const scheduleTime = schedule.time || '10:00';
-  
+
+  if (!frequency) {
+    console.log(`  ❌ frequency が存在しません (planData.frequency: ${frequency})`);
+    return false;
+  }
+
   // 手動実行でない場合は、3日後が投稿対象日かをチェック
-  console.log(`📅 プラン時刻: ${scheduleTime} - 3日後投稿予定をチェック中`);
-  
+  console.log(`  - プラン時刻: ${scheduleTime}`);
+  console.log(`  - frequency: ${frequency}`);
+  console.log(`  - 3日後投稿予定をチェック中`);
+
   // 頻度別チェック（3日後の投稿を想定）
   const targetDate = new Date(currentTime);
   targetDate.setDate(targetDate.getDate() + 3); // 3日後
-  
+
   switch (frequency) {
     case 'daily':
+      console.log(`  ✅ daily: 常に生成対象`);
       return true; // 毎日投稿
       
     case 'weekly':
