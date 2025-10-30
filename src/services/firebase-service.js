@@ -679,18 +679,26 @@ class FirebaseService {
 
       // 階層構造: users/{userId}/projects/{projectId}/plans
       const plansRef = this.firebaseFirestore.collection(
-        this.db, 
-        'users', 
-        currentUser.uid, 
-        'projects', 
-        projectId, 
+        this.db,
+        'users',
+        currentUser.uid,
+        'projects',
+        projectId,
         'plans'
       );
 
-      const docRef = await this.firebaseFirestore.addDoc(plansRef, planData);
-      
+      // isActiveフィールドをデフォルトで追加（Cloud Functions対応）
+      const planDataWithDefaults = {
+        ...planData,
+        isActive: planData.isActive !== undefined ? planData.isActive : true,
+        createdAt: this.firebaseFirestore.serverTimestamp(),
+        updatedAt: this.firebaseFirestore.serverTimestamp()
+      };
+
+      const docRef = await this.firebaseFirestore.addDoc(plansRef, planDataWithDefaults);
+
       console.log('✅ プラン作成成功:', docRef.id);
-      return { success: true, id: docRef.id, plan: { id: docRef.id, ...planData } };
+      return { success: true, id: docRef.id, plan: { id: docRef.id, ...planDataWithDefaults } };
 
     } catch (error) {
       console.error('❌ プラン作成エラー:', error);
