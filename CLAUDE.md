@@ -1959,6 +1959,102 @@ if (loadedConfig.ollama) {
 
 ---
 
-**最終更新**: 2025-10-28
+## 🚀 2025-10-30 更新: Cloud Functions プラン検出問題修正
+
+### ✅ 問題の特定と修正
+
+#### 報告された問題
+- 新しく作成したプランの自動投稿が生成されない
+- Cloud Function (`processAutoPostsScheduled`) が新規プランを検出できない
+- 過去に作成したプランは正常に動作（新旧プランの差異が重要な手がかり）
+
+#### 根本原因
+Cloud Function が以下のクエリでプランをフィルタリング:
+```javascript
+.where('isActive', '==', true)
+```
+
+しかし、`createPlan()` 関数が `isActive` フィールドを追加していなかった。
+
+### 🔧 実装した修正
+
+#### `/src/services/firebase-service.js` - createPlan() 関数修正
+**修正箇所**: 690-696行目
+
+```javascript
+// isActiveフィールドをデフォルトで追加（Cloud Functions対応）
+const planDataWithDefaults = {
+  ...planData,
+  isActive: planData.isActive !== undefined ? planData.isActive : true,
+  createdAt: this.firebaseFirestore.serverTimestamp(),
+  updatedAt: this.firebaseFirestore.serverTimestamp()
+};
+
+const docRef = await this.firebaseFirestore.addDoc(plansRef, planDataWithDefaults);
+```
+
+#### 追加されたデフォルトフィールド
+1. **`isActive: true`**: Cloud Functions検出用（必須）
+2. **`createdAt`**: 作成日時タイムスタンプ
+3. **`updatedAt`**: 更新日時タイムスタンプ
+
+### 📊 技術的詳細
+
+#### Cloud Functions フィルタリングロジ��
+**ファイル**: `/functions/src/autoPostProcessor.js` (235-236行目)
+
+```javascript
+const plansSnapshot = await db
+  .collection('users')
+  .doc(userId)
+  .collection('projects')
+  .doc(projectId)
+  .collection('plans')
+  .where('isActive', '==', true)  // ← このフィルタが必須フィールドを要求
+  .get();
+```
+
+#### Firestore データ構造
+```
+users/{userId}/projects/{projectId}/plans/{planId}
+├─ name: "Twitter投稿プラン"
+├─ description: "毎日の技術ツイート"
+├─ schedule: { time: "10:00", frequency: "daily" }
+├─ isActive: true           ← NEW! Cloud Functions検出に必須
+├─ createdAt: Timestamp     ← NEW! 作成日時
+└─ updatedAt: Timestamp     ← NEW! 更新日時
+```
+
+### 🎯 実装効果
+
+1. **即時検出**: 新規作成プランがCloud Functionsで即座に処理可能に
+2. **後方互換性**: 既存プランには影響なし（既に `isActive` フィールドを持つ）
+3. **タイムスタンプ管理**: 作成・更新日時の自動記録
+4. **デフォルト値の保証**: 必須フィールドの欠落を防止
+
+### 🔍 トラブルシューティング経緯
+
+1. **症状の分析**: 新旧プランの動作差異から設定の違いを推測
+2. **Cloud Functions調査**: フィルタリング条件 `.where('isActive', '==', true)` を発見
+3. **プラン作成ロジック確認**: `createPlan()` が `isActive` を設定していないことを特定
+4. **修正実装**: デフォルトフィールド追加で問題解決
+
+### 📝 テスト方法
+
+1. アプリ起動・ログイン
+2. プロジェクトを選択
+3. 新規プランを作成
+4. Cloud Functions実行（手動: `processAutoPostsManual` または 自動: 毎日9時）
+5. 新規プランの投稿が生成されることを確認
+
+### 💡 今後の改善提案
+
+- **バリデーション強化**: プラン作成時の必須フィールドチェック
+- **スキーマ定義**: Firestoreドキュメント構造の型定義
+- **単体テスト**: プラン作成ロジックのテストカバレッジ追加
+
+---
+
+**最終更新**: 2025-10-30
 **実装者**: Claude Code AI Assistant
-**状態**: **AI設定システム統一化完了** - Ollama削除、Geminiデフォルト化、プロバイダーリスト一元管理達成 🎉
+**状態**: **Cloud Functionsプラン検出問題修正完了** - 新規プラン自動投稿生成正常化 ✅
