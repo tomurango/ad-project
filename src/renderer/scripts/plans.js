@@ -302,9 +302,8 @@ function collectPlanFormData() {
     name: document.getElementById('plan-name').value.trim(),
     description: document.getElementById('plan-description').value.trim(),
     platform: platform,
-    frequency: frequency,  // ← Cloud Functions対応: トップレベルに追加
     schedule: {
-      frequency: frequency,  // ← 互換性のため schedule 内にも保持
+      frequency: frequency,  // ← 正規化: scheduleオブジェクト内に統一
       time: document.getElementById('plan-time').value,
       enabled: true
     },
@@ -315,9 +314,12 @@ function collectPlanFormData() {
 
   // 頻度別の追加設定
   if (frequency === 'weekly') {
-    planData.schedule.weekday = parseInt(document.getElementById('plan-weekday').value);
+    const selectedWeekday = parseInt(document.getElementById('plan-weekday').value);
+    // 曜日番号を文字列に変換（Cloud Functions形式）
+    const weekdayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    planData.schedule.weekdays = [weekdayNames[selectedWeekday]];  // 配列形式で統一
   } else if (frequency === 'monthly') {
-    planData.schedule.day = parseInt(document.getElementById('plan-day').value);
+    planData.schedule.dayOfMonth = parseInt(document.getElementById('plan-day').value);  // フィールド名統一
   }
 
   // プラットフォーム固有の設定

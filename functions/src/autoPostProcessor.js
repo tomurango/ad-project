@@ -294,11 +294,11 @@ function shouldGeneratePost(planData, currentTime, isManualExecution = false) {
   }
 
   const schedule = planData.schedule;
-  const frequency = planData.frequency;
+  const frequency = schedule.frequency || planData.frequency; // schedule内を優先、フォールバックで旧形式対応
   const scheduleTime = schedule.time || '10:00';
 
   if (!frequency) {
-    console.log(`  ❌ frequency が存在しません (planData.frequency: ${frequency})`);
+    console.log(`  ❌ frequency が存在しません (schedule.frequency: ${schedule.frequency}, planData.frequency: ${planData.frequency})`);
     return false;
   }
 
