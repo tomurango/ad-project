@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ダウンロード - Ad Project</title>
+  <meta name="description" content="Ad Projectのダウンロードページ。macOS、Windows、Linux対応。">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .download-section {
+      padding: 5rem 0;
+      background: var(--light-gray);
+    }
+
+    .download-hero {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .download-hero h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: var(--dark);
+    }
+
+    .download-hero p {
+      font-size: 1.2rem;
+      color: var(--gray);
+    }
+
+    .download-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 4rem;
+    }
+
+    .download-card {
+      background: var(--white);
+      padding: 2rem;
+      border-radius: 1rem;
+      border: 2px solid var(--border);
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .download-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px var(--shadow);
+    }
+
+    .download-card-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .download-card h2 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      color: var(--dark);
+    }
+
+    .download-card .version {
+      color: var(--gray);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .download-card .btn-download {
+      display: inline-block;
+      background: var(--primary);
+      color: var(--white);
+      padding: 1rem 2rem;
+      border-radius: 0.5rem;
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      transition: all 0.2s;
+    }
+
+    .download-card .btn-download:hover {
+      background: var(--primary-dark);
+      transform: scale(1.05);
+    }
+
+    .download-card .file-info {
+      font-size: 0.85rem;
+      color: var(--gray);
+    }
+
+    .install-guide {
+      background: var(--white);
+      padding: 3rem;
+      border-radius: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .install-guide h2 {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      color: var(--dark);
+    }
+
+    .install-steps {
+      display: grid;
+      gap: 2rem;
+    }
+
+    .install-step {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .step-number {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      color: var(--white);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .step-content h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+      color: var(--dark);
+    }
+
+    .step-content p {
+      color: var(--gray);
+      line-height: 1.8;
+    }
+
+    .security-note {
+      background: #FEF3C7;
+      border: 2px solid #F59E0B;
+      padding: 2rem;
+      border-radius: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .security-note h3 {
+      color: #D97706;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .security-note p {
+      color: #92400E;
+      line-height: 1.8;
+      margin-bottom: 0.5rem;
+    }
+
+    .security-note strong {
+      color: #78350F;
+    }
+
+    .requirements {
+      background: var(--white);
+      padding: 2rem;
+      border-radius: 1rem;
+    }
+
+    .requirements h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+      color: var(--dark);
+    }
+
+    .requirements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+
+    .requirement-item h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      color: var(--dark);
+    }
+
+    .requirement-item ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .requirement-item li {
+      color: var(--gray);
+      padding: 0.3rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+
+    .requirement-item li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--secondary);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <div class="logo">
+          <h1>Ad Project</h1>
+        </div>
+        <nav class="nav">
+          <a href="index.html">ホーム</a>
+          <a href="index.html#features">機能</a>
+          <a href="download.html" class="btn-primary">ダウンロード</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ダウンロードセクション -->
+  <section class="download-section">
+    <div class="container">
+      <!-- ヒーロー -->
+      <div class="download-hero">
+        <h1>ダウンロード</h1>
+        <p>お使いのOSに応じてダウンロードしてください</p>
+      </div>
+
+      <!-- ダウンロードカード -->
+      <div class="download-cards">
+        <!-- macOS -->
+        <div class="download-card">
+          <div class="download-card-icon">🍎</div>
+          <h2>macOS</h2>
+          <p class="version">バージョン 1.0.0</p>
+          <a href="https://github.com/tomuraeishi/ad-project/releases/latest/download/Ad-Project-1.0.0.dmg" class="btn-download">
+            DMGをダウンロード
+          </a>
+          <p class="file-info">Intel & Apple Silicon 対応</p>
+          <p class="file-info">macOS 10.15 以降</p>
+        </div>
+
+        <!-- Windows -->
+        <div class="download-card">
+          <div class="download-card-icon">🪟</div>
+          <h2>Windows</h2>
+          <p class="version">バージョン 1.0.0</p>
+          <a href="https://github.com/tomuraeishi/ad-project/releases/latest/download/Ad-Project-Setup-1.0.0.exe" class="btn-download">
+            EXEをダウンロード
+          </a>
+          <p class="file-info">64-bit インストーラー</p>
+          <p class="file-info">Windows 10 以降</p>
+        </div>
+
+        <!-- Linux -->
+        <div class="download-card">
+          <div class="download-card-icon">🐧</div>
+          <h2>Linux</h2>
+          <p class="version">バージョン 1.0.0</p>
+          <a href="https://github.com/tomuraeishi/ad-project/releases/latest/download/Ad-Project-1.0.0.AppImage" class="btn-download">
+            AppImageをダウンロード
+          </a>
+          <p class="file-info">または <a href="https://github.com/tomuraeishi/ad-project/releases/latest/download/Ad-Project-1.0.0.deb" style="color: var(--primary);">DEB</a></p>
+          <p class="file-info">Ubuntu 20.04 以降</p>
+        </div>
+      </div>
+
+      <!-- セキュリティ警告 -->
+      <div class="security-note">
+        <h3>⚠️ 初回起動時のセキュリティ警告について</h3>
+        <p>
+          <strong>macOS:</strong> 「開発元を確認できないため開けません」と表示される場合は、
+          「システム設定」→「プライバシーとセキュリティ」から「このまま開く」を選択してください。
+        </p>
+        <p>
+          <strong>Windows:</strong> 「Windows Defender SmartScreen で保護されました」と表示される場合は、
+          「詳細情報」をクリックし、「実行」を選択してください。
+        </p>
+        <p style="margin-top: 1rem; font-size: 0.9rem;">
+          ※ 現在コード署名を申請中です。署名完了後はこの警告は表示されなくなります。
+        </p>
+      </div>
+
+      <!-- インストールガイド -->
+      <div class="install-guide">
+        <h2>インストール手順</h2>
+        <div class="install-steps">
+          <div class="install-step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>ダウンロード</h3>
+              <p>上記からお使いのOSに対応したファイルをダウンロードします。</p>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>インストール</h3>
+              <p>
+                <strong>macOS:</strong> DMGファイルを開き、アプリをアプリケーションフォルダにドラッグ&ドロップ。<br>
+                <strong>Windows:</strong> EXEファイルを実行し、インストールウィザードに従ってインストール。<br>
+                <strong>Linux:</strong> AppImageに実行権限を付与（chmod +x）して実行。または DEBをインストール。
+              </p>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>初回設定</h3>
+              <p>アプリを起動し、Googleアカウントでログイン。次にAI設定でお好みのAIプロバイダーとAPIキーを設定します。</p>
+            </div>
+          </div>
+
+          <div class="install-step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h3>プロジェクト作成</h3>
+              <p>最初のプロジェクトを作成し、投稿プランを設定すれば準備完了です！</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- システム要件 -->
+      <div class="requirements">
+        <h2>システム要件</h2>
+        <div class="requirements-grid">
+          <div class="requirement-item">
+            <h3>macOS</h3>
+            <ul>
+              <li>macOS 10.15 (Catalina) 以降</li>
+              <li>4GB RAM以上推奨</li>
+              <li>500MB 空きストレージ</li>
+            </ul>
+          </div>
+          <div class="requirement-item">
+            <h3>Windows</h3>
+            <ul>
+              <li>Windows 10 (64-bit) 以降</li>
+              <li>4GB RAM以上推奨</li>
+              <li>500MB 空きストレージ</li>
+            </ul>
+          </div>
+          <div class="requirement-item">
+            <h3>Linux</h3>
+            <ul>
+              <li>Ubuntu 20.04 以降</li>
+              <li>4GB RAM以上推奨</li>
+              <li>500MB 空きストレージ</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- フッター -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-left">
+          <p>&copy; 2025 Ad Project. All rights reserved.</p>
+        </div>
+        <div class="footer-right">
+          <a href="https://github.com/tomuraeishi/ad-project" target="_blank">GitHub</a>
+          <a href="index.html">ホーム</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

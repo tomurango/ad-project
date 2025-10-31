@@ -21,16 +21,49 @@
   "description": "広告配信・管理の自動化プラットフォーム",
   "build": {
     "appId": "com.tomuraeishi.ad-project",
-    "productName": "広告配信プラットフォーム",
+    "productName": "Ad Project",
     "directories": {
       "output": "dist"
     },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "src/**/*",
+      "assets/**/*",
+      "config/**/*",
+      "!config/firebase-config-prod.js",
+      "!**/*.md",
+      "!**/*.backup",
+      "!**/*.original*"
+    ],
     "mac": {
       "category": "public.app-category.business",
-      "target": "dmg"
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ]
     },
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "category": "Office",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     }
   },
   "dependencies": {
