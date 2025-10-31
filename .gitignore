@@ -75,3 +75,25 @@ config/firebase-config-prod.js
 # dataconnect generated files
 .dataconnect
 node_modules/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Development and refactoring artifacts
+*_SUMMARY.md
+*_COMPLETE.md
+EXTRACTION_*.md
+PHASE*.md
+
+# Backup and archive files
+*.backup
+*.original
+*.original-*
+archive/
+
+# Temporary and local files
+*.swp
+*.swo
+*~
