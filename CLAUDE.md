@@ -2055,6 +2055,101 @@ users/{userId}/projects/{projectId}/plans/{planId}
 
 ---
 
-**最終更新**: 2025-10-30
+## 🚀 2025-10-31 更新: プランデータ構造完全正規化
+
+### ✅ 問題の真の原因特定
+
+#### 当初の誤った診断
+- **Commit `3c655cb`**: `isActive` フィールド欠落と判断 → **誤り**
+- **実際の原因**: データ構造のミスマッチ
+  - フロントエンド: `schedule.frequency` に保存
+  - Cloud Functions: `planData.frequency` を参照（トップレベル）
+
+### 🔧 正しいアプローチへの転換
+
+#### 間違ったアプローチ (Commit `7a03ce3`)
+```javascript
+// トップレベルにも frequency を追加（冗長）
+{
+  frequency: "daily",  // ← 重複
+  schedule: {
+    frequency: "daily",  // ← 重複
+  }
+}
+```
+
+#### 正しいアプローチ (Commit `dd85585`)
+**「Cloud Functionsを修正して schedule 内を参照する」**
+
+### 📊 実装した正規化
+
+#### 理想的なデータ構造
+```javascript
+{
+  name: "Twitter投稿プラン",
+  platform: "twitter",
+  isActive: true,
+
+  schedule: {
+    frequency: "daily" | "weekly" | "monthly",  // スケジュール内に統一
+    time: "10:00",
+    weekdays: ["monday", "wednesday"],  // weekly用（配列で複数対応）
+    dayOfMonth: 15                      // monthly用（明確な命名）
+  },
+
+  customPrompt: "カジュアルな文体で",
+  createdAt: "2025-10-31T00:00:00Z"
+}
+```
+
+#### 修正内容
+
+**1. Cloud Functions修正** (`functions/src/autoPostProcessor.js`):
+```javascript
+// 修正前
+const frequency = planData.frequency;  // ❌ トップレベル参照
+
+// 修正後
+const frequency = schedule.frequency || planData.frequency;  // ✅ schedule優先、後方互換あり
+```
+
+**2. フロントエンド修正** (`src/renderer/scripts/plans.js`):
+```javascript
+// トップレベルの frequency 削除
+// schedule 内に統一
+
+// フィールド名統一
+weekday → weekdays (配列形式)
+day → dayOfMonth (明確な命名)
+```
+
+**3. 詳細デバッグログ追加**:
+- プラン検査ログ（各フィールド値を出力）
+- 投稿生成判定ログ
+- `shouldGeneratePost` 内部ロジックログ
+
+### 🎯 改善効果
+
+1. **論理的構造**: スケジュール関連情報を `schedule` オブジェクトに集約
+2. **重複排除**: `frequency` フィールドの冗長性解消
+3. **拡張性**: `weekdays` 配列で複数曜日指定が可能
+4. **明確な命名**: `dayOfMonth` で月次日付を明示
+5. **後方互換**: 旧データ形式（トップレベル `frequency`）にもフォールバック対応
+6. **デバッグ性**: 詳細ログで問題箇所を即座に特定可能
+
+### 📝 デプロイ完了
+
+```bash
+✔ functions[processAutoPostsScheduled] Successful update operation.
+✔ functions[processAutoPostsManual] Successful update operation.
+```
+
+### ✅ 動作確認完了
+
+新規プラン作成で正常に投稿生成されることを確認。
+
+---
+
+**最終更新**: 2025-10-31
 **実装者**: Claude Code AI Assistant
-**状態**: **Cloud Functionsプラン検出問題修正完了** - 新規プラン自動投稿生成正常化 ✅
+**状態**: **プランデータ構造完全正規化完了** - 新旧データ両対応、自動投稿生成正常化 ✅
