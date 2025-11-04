@@ -2,13 +2,15 @@
  * 予約投稿実行 Cloud Function v2
  *
  * 新しいデータ構造（users/{userId}/projects/{projectId}/plans/{planId}/posts/{postId}）に対応
- * 毎時0分に実行され、scheduledAt <= now の投稿をTwitterに投稿する
+ * 毎時0分に実行され、scheduledAt <= now の投稿を各プラットフォームに投稿する
+ * 対応プラットフォーム: Twitter, Bluesky
  */
 
 const {onSchedule} = require('firebase-functions/v2/scheduler');
 const {onRequest} = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const {TwitterApi} = require('twitter-api-v2');
+const axios = require('axios');
 
 const db = admin.firestore();
 
@@ -84,10 +86,9 @@ async function processScheduledPosts() {
   try {
     console.log(`🔍 予約投稿を検索中... (${now.toISOString()})`);
 
-    // collectionGroupで全ての投稿を横断検索
+    // collectionGroupで全ての投稿を横断検索（全プラットフォーム対応）
     const postsQuery = db.collectionGroup('posts')
       .where('status', '==', 'scheduled')
-      .where('platform', '==', 'twitter')
       .where('scheduledAt', '<=', now.toISOString());
 
     const postsSnapshot = await postsQuery.get();
@@ -116,10 +117,10 @@ async function processScheduledPosts() {
       const planId = pathParts[5];
       const postId = pathParts[7];
 
-      console.log(`🔄 投稿処理開始: ${postId} (User: ${userId}, Project: ${projectId})`);
+      console.log(`🔄 投稿処理開始: ${postId} (Platform: ${postData.platform}, Project: ${projectId})`);
 
       try {
-        // プロジェクトのTwitter認証情報を取得
+        // プロジェクト情報を取得
         const projectDoc = await db.doc(`users/${userId}/projects/${projectId}`).get();
 
         if (!projectDoc.exists) {
@@ -127,44 +128,41 @@ async function processScheduledPosts() {
         }
 
         const projectData = projectDoc.data();
-        const twitterAuth = projectData.twitterAuth;
 
-        if (!twitterAuth || !twitterAuth.enabled) {
-          throw new Error('Twitter連携が設定されていません');
-        }
+        // プラットフォーム別投稿処理
+        const postResult = await postToPlatform(postData.platform, projectData, postData);
 
-        // Twitter APIクライアント作成
-        const client = new TwitterApi({
-          appKey: twitterAuth.apiKey,
-          appSecret: twitterAuth.apiSecret,
-          accessToken: twitterAuth.accessToken,
-          accessSecret: twitterAuth.accessTokenSecret
-        });
-
-        // ツイート投稿
-        console.log(`📤 投稿中: "${postData.content.substring(0, 30)}..."`);
-        const tweet = await client.v2.tweet(postData.content);
-
-        // 投稿成功: ステータス更新
-        await postDoc.ref.update({
+        // 投稿成功: ステータス更新（プラットフォーム別のデータを保存）
+        const updateData = {
           status: 'posted',
           postedAt: admin.firestore.FieldValue.serverTimestamp(),
-          twitterData: {
-            tweetId: tweet.data.id,
-            url: `https://twitter.com/user/status/${tweet.data.id}`
-          },
           lastModified: admin.firestore.FieldValue.serverTimestamp()
-        });
+        };
+
+        // プラットフォーム別のレスポンスデータを追加
+        if (postData.platform === 'twitter') {
+          updateData.twitterData = {
+            tweetId: postResult.tweetId,
+            url: postResult.url
+          };
+        } else if (postData.platform === 'bluesky') {
+          updateData.blueskyData = {
+            uri: postResult.uri,
+            cid: postResult.cid
+          };
+        }
+
+        await postDoc.ref.update(updateData);
 
         successCount++;
-        console.log(`✅ 投稿成功: ${postId} (Tweet ID: ${tweet.data.id})`);
+        console.log(`✅ 投稿成功: ${postId} (Platform: ${postData.platform})`);
 
         results.push({
           postId,
           projectId,
+          platform: postData.platform,
           success: true,
-          tweetId: tweet.data.id,
-          url: `https://twitter.com/user/status/${tweet.data.id}`
+          ...postResult
         });
 
         // API制限を考慮して少し待機
@@ -204,5 +202,123 @@ async function processScheduledPosts() {
   } catch (error) {
     console.error('❌ 予約投稿処理エラー:', error);
     throw error;
+  }
+}
+
+// ========================================
+// プラットフォーム別投稿処理関数
+// ========================================
+
+/**
+ * Twitter投稿処理
+ * @param {Object} projectData - プロジェクトデータ
+ * @param {Object} postData - 投稿データ
+ * @returns {Promise<Object>} 投稿結果 {success, tweetId, url, error}
+ */
+async function postToTwitter(projectData, postData) {
+  const twitterAuth = projectData.twitterAuth;
+
+  if (!twitterAuth || !twitterAuth.enabled) {
+    throw new Error('Twitter連携が設定されていません');
+  }
+
+  // Twitter APIクライアント作成
+  const client = new TwitterApi({
+    appKey: twitterAuth.apiKey,
+    appSecret: twitterAuth.apiSecret,
+    accessToken: twitterAuth.accessToken,
+    accessSecret: twitterAuth.accessTokenSecret
+  });
+
+  // ツイート投稿
+  console.log(`📤 Twitter投稿中: "${postData.content.substring(0, 30)}..."`);
+  const tweet = await client.v2.tweet(postData.content);
+
+  return {
+    success: true,
+    tweetId: tweet.data.id,
+    url: `https://twitter.com/user/status/${tweet.data.id}`
+  };
+}
+
+/**
+ * Bluesky投稿処理
+ * @param {Object} projectData - プロジェクトデータ
+ * @param {Object} postData - 投稿データ
+ * @returns {Promise<Object>} 投稿結果 {success, uri, cid, error}
+ */
+async function postToBluesky(projectData, postData) {
+  const blueskyAuth = projectData.blueskyAuth;
+
+  if (!blueskyAuth || !blueskyAuth.enabled) {
+    throw new Error('Bluesky連携が設定されていません');
+  }
+
+  // Blueskyセッション作成
+  console.log(`🔐 Blueskyセッション作成: ${blueskyAuth.identifier}`);
+  const sessionResponse = await axios.post(
+    'https://bsky.social/xrpc/com.atproto.server.createSession',
+    {
+      identifier: blueskyAuth.identifier,
+      password: blueskyAuth.password
+    }
+  );
+
+  const session = sessionResponse.data;
+
+  // 投稿レコード構築
+  const record = {
+    $type: 'app.bsky.feed.post',
+    text: postData.content,
+    createdAt: new Date().toISOString()
+  };
+
+  // Bluesky投稿
+  console.log(`📤 Bluesky投稿中: "${postData.content.substring(0, 30)}..."`);
+  const postResponse = await axios.post(
+    'https://bsky.social/xrpc/com.atproto.repo.createRecord',
+    {
+      repo: session.did,
+      collection: 'app.bsky.feed.post',
+      record: record
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${session.accessJwt}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  return {
+    success: true,
+    uri: postResponse.data.uri,
+    cid: postResponse.data.cid
+  };
+}
+
+/**
+ * プラットフォーム別投稿処理のディスパッチャー
+ * @param {string} platform - プラットフォーム名 (twitter, bluesky, instagram等)
+ * @param {Object} projectData - プロジェクトデータ
+ * @param {Object} postData - 投稿データ
+ * @returns {Promise<Object>} 投稿結果
+ */
+async function postToPlatform(platform, projectData, postData) {
+  switch (platform.toLowerCase()) {
+    case 'twitter':
+      return await postToTwitter(projectData, postData);
+
+    case 'bluesky':
+      return await postToBluesky(projectData, postData);
+
+    // 将来の拡張用
+    // case 'instagram':
+    //   return await postToInstagram(projectData, postData);
+    // case 'facebook':
+    //   return await postToFacebook(projectData, postData);
+
+    default:
+      throw new Error(`未対応のプラットフォーム: ${platform}`);
   }
 }
