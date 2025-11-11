@@ -42,7 +42,12 @@ ipcMain.handle('bluesky-get-project-config', async (event, { projectId }) => {
 // プロジェクトのBluesky設定を保存
 ipcMain.handle('bluesky-save-project-config', async (event, { projectId, config }) => {
   try {
-    const result = await firebaseService.saveProjectBlueskyAuth(projectId, config);
+    // 保存時に自動的にenabledフラグを追加
+    const configWithEnabled = {
+      ...config,
+      enabled: true
+    };
+    const result = await firebaseService.saveProjectBlueskyAuth(projectId, configWithEnabled);
     return result;
   } catch (error) {
     console.error('❌ Bluesky設定保存エラー:', error);

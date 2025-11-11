@@ -127,9 +127,19 @@ export function displayPosts(posts) {
                        post.aiGenerationFailed ||
                        post.requiresManualInput;
 
+    // 投稿失敗の判定（status=failed）
+    const isPostFailed = post.status === 'failed';
+
     // AI失敗投稿用の追加スタイル
     const aiFailedStyle = isAIFailed ?
       'border: 2px solid #e0245e; background: linear-gradient(135deg, #fff5f8 0%, #ffffff 100%);' : '';
+
+    // 投稿失敗用の追加スタイル
+    const postFailedStyle = isPostFailed && !isAIFailed ?
+      'border: 2px solid #ff9800; background: linear-gradient(135deg, #fff8e1 0%, #ffffff 100%);' : '';
+
+    // エラー情報の解析と対応方法の表示
+    const errorInfo = getErrorInfoAndSolution(post);
 
     // AI失敗警告メッセージ
     const aiFailedWarning = isAIFailed ? `
@@ -143,9 +153,32 @@ export function displayPosts(posts) {
       </div>
     ` : '';
 
+    // 投稿失敗エラーメッセージ
+    const postFailedWarning = isPostFailed && errorInfo ? `
+      <div style="background: #fff8e1; border-left: 4px solid #ff9800; padding: 12px; margin-bottom: 12px; border-radius: 4px;">
+        <div style="color: #e65100; font-weight: 600; margin-bottom: 8px;">
+          ❌ 投稿に失敗しました
+        </div>
+        <div style="color: #666; font-size: 13px; margin-bottom: 8px;">
+          <strong>エラー詳細:</strong> ${errorInfo.message}
+        </div>
+        ${errorInfo.solution ? `
+          <div style="background: white; border-radius: 4px; padding: 10px; margin-top: 8px;">
+            <div style="color: #1976d2; font-weight: 600; margin-bottom: 4px;">
+              💡 対応方法:
+            </div>
+            <div style="color: #555; font-size: 13px;">
+              ${errorInfo.solution}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    ` : '';
+
     postsHTML += `
-      <div class="post-card" style="${aiFailedStyle}">
+      <div class="post-card" style="${aiFailedStyle}${postFailedStyle}">
         ${aiFailedWarning}
+        ${postFailedWarning}
         <div class="post-header">
           <div class="post-meta">
             <span class="post-status" style="background-color: ${statusColor};">${statusText}</span>
@@ -203,6 +236,55 @@ function displayPostsError(errorMessage) {
 
 // ステータス関連の関数は constants.js から import済み
 // getPostStatusColor, getPostStatusLabel を使用
+
+/**
+ * エラー情報を解析して対応方法を返す
+ */
+function getErrorInfoAndSolution(post) {
+  if (!post.error) {
+    return null;
+  }
+
+  const errorMessage = post.error.message || post.error.toString();
+  let simplifiedMessage = errorMessage;
+  let solution = null;
+
+  // エラーメッセージの解析と対応方法の提示
+  if (errorMessage.includes('enabled') || errorMessage.includes('設定されていません')) {
+    simplifiedMessage = 'SNS連携が有効化されていません';
+    solution = '「プロジェクト情報」→「SNS連携」から、該当プラットフォームの連携を確認してください。';
+  }
+  else if (errorMessage.includes('password') || errorMessage.includes('appPassword')) {
+    simplifiedMessage = 'パスワードの設定に問題があります';
+    solution = '「プロジェクト情報」→「Bluesky連携」から、App Passwordを再設定してください。<br><a href="https://bsky.app/settings/app-passwords" target="_blank" style="color: #1976d2;">Bluesky App Passwordsページ ↗</a>';
+  }
+  else if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+    simplifiedMessage = '認証エラー: APIキーまたはトークンが無効です';
+    solution = '「プロジェクト情報」→「SNS連携」から、認証情報を再設定してください。';
+  }
+  else if (errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+    simplifiedMessage = 'アクセス権限エラー: 投稿権限がありません';
+    solution = 'SNSの連携設定で、投稿権限が付与されているか確認してください。';
+  }
+  else if (errorMessage.includes('429') || errorMessage.includes('Rate limit')) {
+    simplifiedMessage = 'API利用制限: 投稿頻度が制限を超えています';
+    solution = 'しばらく時間をおいてから再度お試しください。（通常15分〜1時間で回復します）';
+  }
+  else if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('Network')) {
+    simplifiedMessage = 'ネットワークエラー: サーバーに接続できません';
+    solution = 'インターネット接続を確認してください。問題が続く場合は、SNSプラットフォームのサーバーに障害が発生している可能性があります。';
+  }
+  else if (errorMessage.includes('timeout')) {
+    simplifiedMessage = 'タイムアウトエラー: サーバーからの応答がありません';
+    solution = 'ネットワーク接続が不安定な可能性があります。再度お試しください。';
+  }
+
+  return {
+    message: simplifiedMessage,
+    solution: solution,
+    originalError: errorMessage
+  };
+}
 
 // ========================================
 // 投稿CRUD操作

@@ -260,7 +260,7 @@ async function postToBluesky(projectData, postData) {
     'https://bsky.social/xrpc/com.atproto.server.createSession',
     {
       identifier: blueskyAuth.identifier,
-      password: blueskyAuth.password
+      password: blueskyAuth.appPassword
     }
   );
 

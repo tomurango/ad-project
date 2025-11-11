@@ -140,7 +140,12 @@ ipcMain.handle('twitter-get-project-config', async (event, { projectId }) => {
 // プロジェクトのTwitter設定を保存
 ipcMain.handle('twitter-save-project-config', async (event, { projectId, config }) => {
   try {
-    const result = await firebaseService.saveProjectTwitterAuth(projectId, config);
+    // 保存時に自動的にenabledフラグを追加
+    const configWithEnabled = {
+      ...config,
+      enabled: true
+    };
+    const result = await firebaseService.saveProjectTwitterAuth(projectId, configWithEnabled);
     console.log('✅ Twitter設定を保存しました');
     return result;
   } catch (error) {
