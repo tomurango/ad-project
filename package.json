@@ -1,5 +1,5 @@
 {
-  "name": "ad-project",
+  "name": "koukokool",
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
@@ -12,16 +12,18 @@
   },
   "keywords": [
     "electron",
-    "advertisement",
+    "social-media",
     "automation",
-    "social-media"
+    "ai",
+    "twitter",
+    "bluesky"
   ],
   "author": "tomuraeishi",
   "license": "MIT",
-  "description": "広告配信・管理の自動化プラットフォーム",
+  "description": "SNS自動投稿プラットフォーム - こうこくーる",
   "build": {
-    "appId": "com.tomuraeishi.ad-project",
-    "productName": "Ad Project",
+    "appId": "com.tomuraeishi.koukokool",
+    "productName": "こうこくーる",
     "directories": {
       "output": "dist"
     },
