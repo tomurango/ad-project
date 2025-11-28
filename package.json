@@ -1,5 +1,5 @@
 {
-  "name": "koukokool",
+  "name": "koukokuul",
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
@@ -22,7 +22,7 @@
   "license": "MIT",
   "description": "SNS自動投稿プラットフォーム - こうこくーる",
   "build": {
-    "appId": "com.tomuraeishi.koukokool",
+    "appId": "com.tomuraeishi.koukokuul",
     "productName": "こうこくーる",
     "directories": {
       "output": "dist"
