@@ -1,5 +1,5 @@
 {
-  "name": "koukokuul",
+  "name": "adpro",
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
@@ -20,10 +20,10 @@
   ],
   "author": "tomuraeishi",
   "license": "MIT",
-  "description": "SNS自動投稿プラットフォーム - こうこくーる",
+  "description": "SNS自動投稿プラットフォーム - アドプロ",
   "build": {
-    "appId": "com.tomuraeishi.koukokuul",
-    "productName": "こうこくーる",
+    "appId": "com.tomuraeishi.adpro",
+    "productName": "アドプロ",
     "directories": {
       "output": "dist"
     },
